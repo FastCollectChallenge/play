@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fast Collect Challenge</title>
+    <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;700;900&family=Press+Start+2P&family=Roboto:wght@600&family=Source+Sans+3:wght@600&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Press Start 2P', cursive !important; font-synthesis: none; }
+        /* Le panneau des spawns garde la police normale */
+        #spawn-panel, #spawn-panel * { font-family: 'Nunito', sans-serif !important; }
+        body { margin: 0; overflow: hidden; background-color: #000; font-weight: 500; user-select: none; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        
+        #score, #timer-display { position: absolute; color: white; font-size: 16px; font-weight: 900; z-index: 10; text-shadow: 2px 2px 4px black; display: none; }
+        #score { left: 20px; top: 20px; }
+        #timer-display { right: 20px; top: 20px; }
+        
+        #adventure-hud { position: absolute; left: 20px; top: 20px; display: none; z-index: 10; }
+        .hud-row { display: flex; align-items: center; gap: 15px; }
+        #open-inv-btn { background: #487eb0; color: white; border: 3px solid #fff; font-size: 10px; padding: 12px 20px; border-radius: 12px; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.4); transition: transform 0.2s, background 0.2s; font-weight: 700; }
+        #open-inv-btn:hover { transform: scale(1.05); background: #00a8ff; }
+        
+        /* Cadre d'argent cliquable et extensible */
+        .pinned-money { background: #f1c40f; color: #2c3e50; font-weight: 700; font-size: 12px; padding: 10px 22px; border-radius: 50px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 2px solid #fff; cursor: pointer; transition: transform 0.2s, width 0.2s, background-color 0.2s; min-width: 80px; text-align: center; }
+        .pinned-money:hover { transform: scale(1.08); background-color: #e1b12c; }
+
+        /* Styles des écrans d'interfaces overlays (Inventory & Shop) */
+        #inventory-screen, #shop-screen { position: fixed; top: 5vh; left: 5vw; width: 90vw; height: 90vh; background: rgba(0, 0, 0, 0.55); z-index: 1000; border-radius: 25px; border: 3px solid rgba(255,255,255,0.2); backdrop-filter: blur(8px); display: none; flex-direction: column; padding: 30px; box-sizing: border-box; color: white; }
+        .screen-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+        .money-badge { background: #f1c40f; color: #2c3e50; font-weight: 700; font-size: 14px; padding: 10px 30px; border-radius: 50px; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .close-screen-btn { background: #c23616; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 10px; }
+        .close-screen-btn:hover { background: #ea2027; }
+
+        /* Onglets pour l'inventaire */
+        .tabs-container { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); color: white; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 10px; transition: background 0.2s; }
+        .tab-btn.active { background: #487eb0; border-color: #fff; }
+
+        #inventory-grid, #shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; overflow-y: auto; flex-grow: 1; padding-right: 10px; align-content: start; }
+        
+        /* Cartes d'items */
+        .inv-item-card { background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255,255,255,0.15); border-radius: 25px; height: 90px; display: flex; align-items: center; justify-content: space-between; padding: 0 25px; position: relative; overflow: hidden; transition: background 0.2s, border-color 0.2s; cursor: pointer; }
+        .inv-item-card:hover { background: rgba(255, 255, 255, 0.18); border-color: rgba(255,255,255,0.4); }
+        .inv-item-info { display: flex; align-items: center; gap: 15px; font-size: 14px; font-weight: 700; }
+        .inv-item-icon-img { width: 45px; height: 45px; object-fit: contain; }
+        .inv-item-count { font-size: 14px; color: #f5f6fa; }
+        
+        .sell-btn { position: absolute; right: 15px; top: 50%; transform: translateY(-50%) scale(0); background: #c23616; border: none; width: 45px; height: 45px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; box-shadow: 0 3px 8px rgba(0,0,0,0.3); z-index: 5; }
+        .inv-item-card:hover .sell-btn { transform: translateY(-50%) scale(1); }
+        .sell-btn:hover { background: #ea2027; transform: translateY(-50%) scale(1.1) !important; }
+
+        /* Cartes de la boutique (Shop Cards) */
+        .shop-item-card { background: linear-gradient(135deg, #1e272e, #2f3640); border: 3px solid #487eb0; border-radius: 20px; height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; transition: border-color 0.2s; cursor: pointer; padding: 10px; box-sizing: border-box; }
+        .shop-item-card:hover { border-color: #00a8ff; }
+        .shop-item-visual { display: flex; flex-direction: column; align-items: center; justify-content: center; transition: filter 0.2s, opacity 0.2s; width: 100%; height: 100%; }
+        .shop-item-img { width: 65px; height: 65px; object-fit: contain; margin-bottom: 5px; }
+        .shop-item-duration { font-size: 10px; font-weight: 700; color: #dcdde1; }
+        .shop-item-title { font-size: 11px; font-weight: 900; color: #fff; margin-bottom: 2px; }
+        
+        /* Overlay du prix au survol du Shop */
+        .shop-item-price-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); opacity: 0; transition: opacity 0.2s; font-size: 12px; font-weight: 900; color: #f1c40f; pointer-events: none; }
+        .shop-item-card:hover .shop-item-visual { filter: blur(3px); opacity: 0.3; }
+        .shop-item-card:hover .shop-item-price-overlay { opacity: 1; }
+
+        /* Boite de dialogue customisée modale type Confirmation */
+        #custom-confirm-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.4); z-index: 5000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .confirm-box { background: #2f3640; border: 3px solid #487eb0; padding: 25px; border-radius: 20px; text-align: center; color: white; width: 350px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .confirm-msg { font-size: 11px; font-weight: 700; margin-bottom: 20px; line-height: 1.8; }
+        .confirm-actions { display: flex; justify-content: center; gap: 15px; }
+        .confirm-btn { padding: 10px 25px; border-radius: 8px; border: none; font-weight: 700; font-size: 10px; cursor: pointer; transition: background 0.2s; }
+        .confirm-btn.yes { background: #487eb0; color: white; }
+        .confirm-btn.yes:hover { background: #00a8ff; }
+        .confirm-btn.no { background: #c23616; color: white; }
+        .confirm-btn.no:hover { background: #ea2027; }
+
+        /* Reste du CSS existant inchangé */
+        #sell-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.2); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+        .sell-box { background: #2f3640; border: 3px solid #487eb0; padding: 25px; border-radius: 20px; text-align: center; color: white; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .sell-box h3 { margin-top: 0; font-size: 11px; line-height: 1.6; font-weight: 700; }
+        .sell-input { width: 80%; padding: 10px; font-size: 12px; border-radius: 8px; border: 2px solid #487eb0; background: #222; color: white; text-align: center; font-weight: 700; margin-bottom: 5px; }
+        .sell-input:focus { border-color: #00a8ff; outline: none; }
+        .sell-hint { font-size: 8px; color: #dcdde1; font-style: italic; margin-bottom: 15px; display: block; }
+        .sell-actions { display: flex; justify-content: center; gap: 10px; }
+
+        #msg-container-top { position: fixed; top: 60px; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 10000; pointer-events: none; }
+        #msg-container-bottom { position: fixed; bottom: 150px; left: 0; width: 100%; display: flex; flex-direction: column-reverse; align-items: center; z-index: 10000; pointer-events: none; }
+        .admin-msg { font-family: 'Roboto', sans-serif !important; font-weight: 600 !important; font-size: 26px; text-align: center; text-shadow: 2px 2px 10px rgba(0,0,0,0.9); margin: 5px 0; width: 100%; }
+        .txt-violet { color: #A020F0; }
+        .rainbow-text { background: linear-gradient(to right, #ff9999, #ffcc99, #ffff99, #99ff99, #99ccff, #cc99ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block; filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.3)); }
+        .galaxy-text { background: linear-gradient(to right, #ffb3ff, #b3f0ff, #e6b3ff, #ffffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block; filter: drop-shadow(0px 0px 5px rgba(179,240,255,0.6)); }
+
+        .gradient-text { -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-shadow: none; display: inline-block; filter: drop-shadow(0px 0px 3px rgba(255,255,255,0.55)); }
+
+        /* Panneau des spawns (adventure) */
+        #spawn-panel { position: fixed; top: 20px; right: 20px; z-index: 10; display: none; background: rgba(0,0,0,0.55); border: 2px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 6px 14px; color: white; font-weight: 700; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); pointer-events: none; }
+        .spawn-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 4px 0; }
+        .spawn-row + .spawn-row { border-top: 1px solid rgba(255,255,255,0.12); }
+        .spawn-label { color: #dcdde1; white-space: nowrap; }
+        .spawn-icons { display: flex; gap: 6px; min-width: 58px; justify-content: flex-end; }
+        .spawn-icons img { width: 26px; height: 26px; object-fit: contain; }
+        .spawn-empty { color: #7f8fa6; }
+
+        #hud-events { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: row-reverse; gap: 15px; z-index: 1000; }
+        .event-card { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 12px; border: 2px solid #555; min-width: 80px; }
+        .img-container { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; position: relative; font-size: 40px; }
+        .img-container img { width: 100%; height: 100%; object-fit: contain; position: absolute; z-index: 2; border-radius: 5px; }
+        .event-timer { color: white; font-weight: 700; font-size: 12px; margin-top: 5px; }
+
+        #leave-game-btn { position: absolute; bottom: 20px; left: 20px; z-index: 20; background: #c23616; color: white; padding: 12px 24px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 10px; border: 2px solid #fff; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.4); display: none; transition: background 0.2s; }
+        #leave-game-btn:hover { background: #ea2027; }
+
+        /* Page d'accueil Redesign : Noir et Jaune, Bords Jaunes */
+        #home-screen { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: #000000; border: 10px solid #f1c40f; z-index: 100; display: flex; flex-direction: column; box-sizing: border-box; }
+        #dvdCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+        .home-content { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; width: 100%; height: 100%; justify-content: center; }
+        .home-header { position: absolute; top: 0; left: 0; width: 100%; height: 140px; display: flex; align-items: center; padding: 0 40px; box-sizing: border-box; }
+        .logo-placeholder { font-size: 50px; background: rgba(241, 196, 15, 0.1); padding: 10px; border-radius: 12px; border: 2px dashed #f1c40f; position: absolute; left: 40px; }
+        .main-title { color: #f1c40f; font-family: 'Press Start 2P', cursive !important; font-size: 32px; line-height: 1.5; text-transform: uppercase; text-shadow: 4px 4px 0px #000; margin: 0 auto; text-align: center; white-space: nowrap; }
+
+        #account-settings-btn { position: absolute; right: 40px; top: 40px; background: #f1c40f; color: #000; border: 3px solid #f1c40f; width: 55px; height: 55px; border-radius: 15px; font-size: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5); transition: transform 0.2s, background 0.2s; z-index: 10; }
+        #account-settings-btn:hover { transform: scale(1.1); background: #f39c12; }
+
+        #account-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.4); z-index: 2500; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        #account-panel { background: #2f3640; border: 3px solid #7ed6df; padding: 25px; border-radius: 20px; color: white; text-align: center; width: 340px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+        #account-select { padding: 10px; font-size: 10px; border-radius: 8px; background: #222; color: white; border: 2px solid #7ed6df; font-weight: 700; width: 100%; margin-bottom: 15px; margin-top: 10px; }
+        .acc-btn { background: #487eb0; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 8px; margin: 3px; transition: background 0.2s; }
+        .acc-btn:hover { background: #00a8ff; }
+        .acc-btn.danger { background: #c23616; }
+        .acc-btn.danger:hover { background: #ea2027; }
+
+        .modes-container { display: flex; gap: 60px; margin-top: 10px; }
+        .mode-card { width: 320px; height: 220px; background: #000000; border: 4px solid #f1c40f; border-radius: 20px; color: #f1c40f; display: flex; justify-content: center; align-items: center; font-family: 'Press Start 2P', cursive !important; font-size: 20px; text-align: center; cursor: pointer; position: relative; overflow: hidden; box-shadow: 0 10px 25px rgba(241, 196, 15, 0.2); transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; }
+        .mode-card:hover { transform: translateY(-10px) scale(1.03); border-color: #f39c12; box-shadow: 0 15px 35px rgba(241, 196, 15, 0.5); }
+
+        .bottom-action-btn { position: absolute; bottom: 40px; width: 70px; height: 70px; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 6px 15px rgba(0,0,0,0.4); transition: transform 0.2s ease, background-color 0.2s ease; cursor: pointer; border: none; text-decoration: none; }
+        .bottom-action-btn:hover { transform: scale(1.1); }
+        .bottom-action-btn img { width: 42px; height: 42px; object-fit: contain; }
+        .discord-btn-left { left: 40px; background-color: #f1c40f; }
+        .discord-btn-left:hover { background-color: #f39c12; }
+        .discord-btn-left img { border-radius: 50%; }
+        
+        .inv-title-text { font-family: 'Press Start 2P', cursive !important; font-size: 18px; margin: 0; color: #487eb0; }
+
+        /* ===== Écran d'accueil responsive =====
+           --u vaut 1px pour une fenêtre de 1440x900 et suit la plus petite des deux
+           dimensions (largeur/hauteur), bornée entre 0.3px et 1.6px.
+           Logo, titre, boutons et textes sont tous exprimés en multiples de --u. */
+        #home-screen { --u: clamp(0.3px, min(0.06944vw, 0.1111vh), 1.6px); }
+
+        .home-header { height: calc(140 * var(--u)); padding: 0 calc(40 * var(--u)); }
+        .logo-placeholder { font-size: calc(50 * var(--u)); padding: calc(10 * var(--u)); border-radius: calc(12 * var(--u)); border-width: calc(2 * var(--u)); left: calc(40 * var(--u)); }
+        .main-title { font-size: calc(32 * var(--u)); text-shadow: calc(4 * var(--u)) calc(4 * var(--u)) 0 #000; }
+
+        #account-settings-btn { right: calc(40 * var(--u)); top: calc(40 * var(--u)); width: calc(55 * var(--u)); height: calc(55 * var(--u)); border-radius: calc(15 * var(--u)); border-width: calc(3 * var(--u)); font-size: calc(26 * var(--u)); }
+
+        .modes-container { gap: calc(60 * var(--u)); margin-top: calc(10 * var(--u)); }
+        .mode-card { width: calc(320 * var(--u)); height: calc(220 * var(--u)); border-width: calc(4 * var(--u)); border-radius: calc(20 * var(--u)); font-size: calc(20 * var(--u)); }
+
+        .bottom-action-btn { bottom: calc(40 * var(--u)); width: calc(70 * var(--u)); height: calc(70 * var(--u)); }
+        .bottom-action-btn img { width: calc(42 * var(--u)); height: calc(42 * var(--u)); }
+        .discord-btn-left { left: calc(40 * var(--u)); }
+
+        /* Bouton Leave : en haut à gauche, rond, contour pointillé jaune, logo -> "Leave?" au survol */
+        #leave-game-btn { position: fixed; top: 20px; left: 20px; bottom: auto; width: 64px; height: 64px; padding: 0; border-radius: 50%; background: transparent; border: 3px dotted #f1c40f; color: #f1c40f; box-shadow: none; align-items: center; justify-content: center; font-size: 28px; line-height: 1; transition: transform 0.2s, background 0.2s; }
+        #leave-game-btn:hover { background: rgba(241, 196, 15, 0.12); transform: scale(1.06); }
+        #leave-game-btn .leave-label { display: none; font-size: 9px; }
+        #leave-game-btn:hover .leave-icon { display: none; }
+        #leave-game-btn:hover .leave-label { display: inline; }
+
+        /* Boutons Inventory / Shop / Index : empilés au milieu gauche de l'écran, fond mauve clair, image -> nom au survol */
+        #side-buttons { position: fixed; left: 20px; top: 50%; transform: translateY(-50%); z-index: 10; display: flex; flex-direction: column; gap: 14px; }
+        .side-btn { width: 70px; height: 70px; padding: 0; background: #D9BFF2; border: none; border-radius: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.35); transition: transform 0.2s; }
+        .side-btn:hover { transform: scale(1.06); }
+        .side-btn img { width: 68%; height: 68%; object-fit: contain; display: block; }
+        .side-btn .side-btn-label { display: none; font-family: 'Roboto', sans-serif; font-weight: 600; color: #2c1a45; font-size: 13px; text-align: center; }
+        .side-btn:hover img { display: none; }
+        .side-btn:hover .side-btn-label, .side-btn.no-img .side-btn-label { display: block; }
+
+        /* Argent : en bas à gauche, plus grand, Roboto SemiBold 600, vert clair, contour blanc */
+        #money-hud { position: fixed; left: 20px; bottom: 20px; z-index: 10; }
+        #money-display { font-family: 'Roboto', sans-serif; font-weight: 600; color: #4ADE80; font-size: 48px; line-height: 1; -webkit-text-stroke: 2px #fff; paint-order: stroke fill; text-shadow: 0 0 6px rgba(0,0,0,0.35); }
+
+        /* Bouton paramètres : icône seule, sans contour ni remplissage */
+        #account-settings-btn { background: transparent; border: none; box-shadow: none; padding: 0; overflow: visible; }
+        #account-settings-btn:hover { background: transparent; }
+        #account-settings-btn img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    </style>
+</head>
+<body>
+
+    <div id="home-screen">
+        <canvas id="dvdCanvas"></canvas>
+        <div class="home-content">
+            <div class="home-header">
+                <div class="logo-placeholder">🕹️</div> 
+                <h1 class="main-title">Fast Collect Challenge</h1>
+                <button id="account-settings-btn" onclick="openAccountModal()"><img src="https://cdn-icons-png.flaticon.com/512/5676/5676586.png" alt="Settings" onerror="this.replaceWith(document.createTextNode('⚙️'))"></button>
+            </div>
+            <div class="modes-container">
+                <div class="mode-card" onclick="startAdventure()">ADVENTURE<br>MODE</div>
+                <div class="mode-card" onclick="startGame()">ARCADE<br>MODE</div>
+            </div>
+            <a href="https://discord.gg/52UY26TBQF" target="_blank" class="bottom-action-btn discord-btn-left">
+                <img src="https://i.pinimg.com/originals/50/5c/7f/505c7fdb81893aa475d88543b6b93d61.jpg" alt="Discord">
+            </a>
+        </div>
+    </div>
+
+    <div id="account-modal">
+        <div id="account-panel">
+            <div style="font-weight: 700; font-size: 11px; color: #7ed6df;">👤 ADVENTURE ACCOUNTS</div>
+            <select id="account-select" onchange="switchAccount(this.value)"></select>
+            <div style="margin-bottom: 15px;">
+                <button class="acc-btn" onclick="createNewAccount()">+ New</button>
+                <button class="acc-btn" onclick="exportAccount()">📤 Export Key</button>
+                <button class="acc-btn" onclick="importAccount()">📥 Import Key</button>
+                <button class="acc-btn danger" onclick="deleteAccount()">🗑️ Delete</button>
+            </div>
+            <button class="acc-btn" style="background:#555; width:80%;" onclick="closeAccountModal()">Close</button>
+        </div>
+    </div>
+
+    <div id="score">Score: 0</div>
+    <div id="timer-display">Timer: 60</div>
+
+    <div id="spawn-panel">
+        <div class="spawn-row"><span class="spawn-label">Latest spawn</span><span class="spawn-icons" id="spawn-latest"></span></div>
+        <div class="spawn-row"><span class="spawn-label">Latest good spawn</span><span class="spawn-icons" id="spawn-latest-good"></span></div>
+        <div class="spawn-row"><span class="spawn-label">Best spawn</span><span class="spawn-icons" id="spawn-best"></span></div>
+    </div>
+    
+    <div id="adventure-hud">
+        <div id="money-hud">
+            <div id="money-display">$<span id="pinned-money-counter">0</span></div>
+        </div>
+    </div>
+
+    <div id="inventory-screen">
+        <div class="screen-header">
+            <div class="money-badge">$ <span id="inv-money-counter">0</span></div>
+            <h2 class="inv-title-text">INVENTORY</h2>
+            <button class="close-screen-btn" onclick="toggleInventory(false)">Close ✖</button>
+        </div>
+        <div class="tabs-container">
+            <button class="tab-btn active" id="tab-apples-btn" onclick="switchInventoryTab('apples')">Apples</button>
+            <button class="tab-btn" id="tab-potions-btn" onclick="switchInventoryTab('potions')">Luck Potions</button>
+        </div>
+        <div id="inventory-grid"></div>
+    </div>
+
+    <div id="shop-screen">
+        <div class="screen-header">
+            <div class="money-badge">$ <span id="shop-money-counter">0</span></div>
+            <h2 class="inv-title-text" style="color: #f1c40f;">🏪 SHOP</h2>
+            <button class="close-screen-btn" onclick="toggleShop(false)">Close ✖</button>
+        </div>
+        <div style="font-family: 'Press Start 2P', cursive !important; font-size: 16px; text-align: center; margin-bottom: 20px; color: #7ed6df;">Luck Potions</div>
+        <div id="shop-grid"></div>
+    </div>
+
+    <div id="custom-confirm-modal">
+        <div class="confirm-box">
+            <div class="confirm-msg" id="custom-confirm-message">Message standard</div>
+            <div class="confirm-actions">
+                <button class="confirm-btn yes" id="custom-confirm-yes-btn">Yes</button>
+                <button class="confirm-btn no" id="custom-confirm-no-btn">No</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="sell-modal">
+        <div class="sell-box">
+            <h3 id="sell-title">Sell Apples</h3>
+            <input type="text" id="sell-quantity" class="sell-input" placeholder="Quantity">
+            <span class="sell-hint">Type "Max" to sell all</span>
+            <div class="sell-actions">
+                <button class="acc-btn" onclick="confirmTransaction()">Confirm</button>
+                <button class="acc-btn danger" onclick="closeSellModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="msg-container-top"></div>
+    <div id="msg-container-bottom"></div>
+    <div id="hud-events"></div>
+    
+    <button id="leave-game-btn" onclick="leaveGame()"><span class="leave-icon">🕹️</span><span class="leave-label">Leave?</span></button>
+    <div id="side-buttons">
+        <button id="inv-btn" class="side-btn" onclick="toggleInventory(true)"><img src="https://cdn-icons-png.flaticon.com/512/3313/3313637.png" alt="Inventory" onerror="this.style.display=\'none\'; this.parentNode.classList.add(\'no-img\')"><span class="side-btn-label">Inventory</span></button>
+        <button id="shop-btn" class="side-btn" onclick="toggleShop(true)"><img src="https://cdn-icons-png.flaticon.com/512/126/126122.png" alt="Shop" onerror="this.style.display=\'none\'; this.parentNode.classList.add(\'no-img\')"><span class="side-btn-label">Shop</span></button>
+        <button id="index-btn" class="side-btn" onclick="toggleIndex(true)"><img src="https://cdn-icons-png.flaticon.com/512/10742/10742635.png" alt="Index" onerror="this.style.display=\'none\'; this.parentNode.classList.add(\'no-img\')"><span class="side-btn-label">Index</span></button>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const ably = new Ably.Realtime('bZFMkw.u1oLTg:xhXyW5SeGGYAmDyoGjYDfkbodtDNkZcEMXw11__DDxM');
+        const channel = ably.channels.get('admin-commands');
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const dvdCanvas = document.getElementById("dvdCanvas");
+        const dvdCtx = dvdCanvas.getContext("2d");
+
+        // Format court des nombres : 1000 -> 1K, 1500 -> 1.5K, 1000000 -> 1M, 1B, 1T... (1 décimale, sans ".0" inutile)
+        const NUM_SUFFIXES = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
+        function fmtNum(n) {
+            n = Number(n); if (!isFinite(n)) return String(n);
+            const sign = n < 0 ? '-' : ''; n = Math.abs(Math.floor(n));
+            if (n < 1000) return sign + n;
+            const last = NUM_SUFFIXES.length - 1; let tier = 0, v = n;
+            while (v >= 1000 && tier < last) { v /= 1000; tier++; }
+            v = Math.round(v * 10) / 10;
+            if (v >= 1000 && tier < last) { v = Math.round((v / 1000) * 10) / 10; tier++; } // 999.96K -> 1M
+            return sign + (Number.isInteger(v) ? v : v.toFixed(1)) + NUM_SUFFIXES[tier];
+        }
+
+        function resize() { 
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
+            dvdCanvas.width = window.innerWidth; dvdCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize); 
+
+        let timeLeft = 60, gameActive = false, score = 0, scoreMult = 1, appleMultiplier = 1;
+        let currentGameMode = "arcade";
+        let luckMultiplier = 1; 
+        let currentLuck = 0.05; 
+        let activeTimers = {}, player = { x: canvas.width / 2, y: canvas.height / 2 };
+        
+        const BASE_BALL_SPEED = 2.5 * 1.5; // vitesse de base (x1.5)
+        let ball = { x: 100, y: 100, speed: BASE_BALL_SPEED, baseSpeed: BASE_BALL_SPEED, emoji: "🏐" };
+        let apples = [];
+        let gameSpawnInterval = null;
+
+        let currentInventoryTab = "apples"; // Gestionnaire d'onglets courant ('apples' ou 'potions')
+
+        const IMG_FRUITS = {
+            red: "https://minecraft.wiki/images/Apple_JE3_BE3.png?3853a",
+            green: "https://media.forgecdn.net/avatars/thumbnails/1159/26/256/256/638727529052260282.png",
+            golden: "https://static.wikia.nocookie.net/minecraft_gamepedia/images/5/54/Golden_Apple_JE2_BE2.png/revision/latest/thumbnail/width/360/height/360?cb=20200521041809",
+            diamond: "https://minecraft-max.net/upload/iblock/e00/t1ck3mvx35ipy8qck6de5vejzaul0ui4.png",
+            candy: "https://media.forgecdn.net/avatars/thumbnails/1126/504/256/256/638684252218093369.png",
+            lava: "https://static.wikia.nocookie.net/create_mod/images/1/1a/Honeyed_Apple.png/revision/latest?cb=20210413133617",
+            galaxy: "https://static.planetminecraft.com/files/image/minecraft/texture-pack/2024/103/18047006-pack_xl.webp",
+            dark: "https://static.wikia.nocookie.net/minecraftcreepypasta/images/2/28/The_Dark_Apple.png/revision/latest?cb=20180216141542",
+            salhini: "Salhi.png",
+            bloodmoon: "https://static.planetminecraft.com/files/image/minecraft/data-pack/2020/297/13612020-redstone-apple_xl.webp",
+            moony: "https://aether.wiki.gg/images/Modern_White_Apple.png?e320e3"
+        };
+
+        const IMG_POTIONS = {
+            x2: "https://static.wikia.nocookie.net/minecraft_gamepedia/images/7/72/Potion_of_Luck_JE3.png/revision/latest?cb=20230303160252",
+            x4: "https://static.wikia.nocookie.net/minecraft_gamepedia/images/f/f0/Potion_of_Strength_JE3.png/revision/latest?cb=20230303163006",
+            x6: "https://static.wikia.nocookie.net/minecraft_gamepedia/images/8/8b/Potion_of_the_Turtle_Master_JE3.png/revision/latest?cb=20230303170448",
+            x8: "https://media.forgecdn.net/avatars/thumbnails/506/717/256/256/637825834617503195.png",
+            x10: "https://static.wikia.nocookie.net/minecraft_gamepedia/images/f/f8/Potion_of_Decay_BE2.png/revision/latest?cb=20191027040618"
+        };
+
+        // Cache des instances d'images Canvas pour optimiser les rendus
+        const IMAGES_CACHE = {};
+        Object.keys(IMG_FRUITS).forEach(k => { IMAGES_CACHE[k] = new Image(); IMAGES_CACHE[k].src = IMG_FRUITS[k]; });
+
+        const LUCK_IMAGES = { 2: "https://static.wikia.nocookie.net/stealabr/images/e/ea/2xLuck.webp", 4: "https://static.wikia.nocookie.net/stealabr/images/f/f1/4xLuck.webp", 6: "https://static.wikia.nocookie.net/stealabr/images/9/9e/Clover5.webp", 8: "https://static.wikia.nocookie.net/stealabr/images/7/76/CloverStack.png", 10: "https://static.wikia.nocookie.net/stealabr/images/f/fe/10x.png",
+            12: "https://static.wikia.nocookie.net/stealabr/images/f/fb/12x.png/revision/latest?cb=20251126182250",
+            15: "https://static.wikia.nocookie.net/stealabr/images/0/0a/15x.png/revision/latest/scale-to-width/360?cb=20251222183115",
+            20: "https://static.wikia.nocookie.net/stealabr/images/b/b7/20x_Luck.png/revision/latest/scale-to-width/360?cb=20260207171434",
+            25: "https://static.wikia.nocookie.net/stealabr/images/e/ea/25x_Luck.png/revision/latest/scale-to-width/360?cb=20260317140953",
+            30: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTrFNlg9gyEgPDxziE-QhwDi6IGH7R6a417vAGMcd6ZX3a9_-tV0VbBrkUJ&s=10",
+            35: "https://static.wikia.nocookie.net/stealabr/images/9/96/35x_Luck.png/revision/latest/scale-to-width/360?cb=20260719014843" };
+
+        // Configuration du catalogue de la boutique
+        const SHOP_PRODUCTS = [
+            { id: "pot_x2_30", type: "x2", multiplier: 2, duration: 30, price: 1000 },
+            { id: "pot_x2_60", type: "x2", multiplier: 2, duration: 60, price: 1750 },
+            { id: "pot_x4_30", type: "x4", multiplier: 4, duration: 30, price: 2000 },
+            { id: "pot_x4_60", type: "x4", multiplier: 4, duration: 60, price: 3500 },
+            { id: "pot_x6_25", type: "x6", multiplier: 6, duration: 25, price: 3250 },
+            { id: "pot_x6_45", type: "x6", multiplier: 6, duration: 45, price: 7000 },
+            { id: "pot_x8_20", type: "x8", multiplier: 8, duration: 20, price: 4000 },
+            { id: "pot_x8_40", type: "x8", multiplier: 8, duration: 40, price: 7500 },
+            { id: "pot_x8_60", type: "x8", multiplier: 8, duration: 60, price: 10000 },
+            { id: "pot_x10_15", type: "x10", multiplier: 10, duration: 15, price: 4500 },
+            { id: "pot_x10_30", type: "x10", multiplier: 10, duration: 30, price: 7500 },
+            { id: "pot_x10_60", type: "x10", multiplier: 10, duration: 60, price: 15000 }
+        ];
+
+        let accounts = { "Default": { money: 0, redApples: 0, greenApples: 0, goldenApples: 0, diamondApples: 0, candyApples: 0, lavaApples: 0, galaxyApples: 0, darkApples: 0, salhiniApples: 0, bloodmoonApples: 0, moonyApples: 0, potions: {} } };
+        let currentAccountName = "Default";
+        let activeSellType = null; 
+
+        // Gestion de l'affichage textuel alternatif du HUD argent au survol
+        // Système de boite de dialogue modale personnalisée asynchrone (Yes/No)
+        function showCustomConfirm(message, callback) {
+            document.getElementById("custom-confirm-message").innerText = message;
+            const modal = document.getElementById("custom-confirm-modal");
+            modal.style.display = "flex";
+            
+            const cleanListeners = () => {
+                document.getElementById("custom-confirm-yes-btn").onclick = null;
+                document.getElementById("custom-confirm-no-btn").onclick = null;
+                modal.style.display = "none";
+            };
+
+            document.getElementById("custom-confirm-yes-btn").onclick = () => { cleanListeners(); callback(true); };
+            document.getElementById("custom-confirm-no-btn").onclick = () => { cleanListeners(); callback(false); };
+        }
+
+        function openAccountModal() { document.getElementById("account-modal").style.display = "flex"; }
+        function closeAccountModal() { document.getElementById("account-modal").style.display = "none"; }
+
+        function loadAllAccounts() {
+            const savedAccounts = localStorage.getItem("fastCollect_accounts");
+            const savedActive = localStorage.getItem("fastCollect_activeAccount");
+            if (savedAccounts) {
+                let parsed = JSON.parse(savedAccounts);
+                Object.keys(parsed).forEach(k => {
+                    if (parsed[k].goldenApples === undefined) parsed[k].goldenApples = 0;
+                    if (parsed[k].diamondApples === undefined) parsed[k].diamondApples = 0;
+                    if (parsed[k].candyApples === undefined) parsed[k].candyApples = 0;
+                    if (parsed[k].lavaApples === undefined) parsed[k].lavaApples = 0;
+                    if (parsed[k].galaxyApples === undefined) parsed[k].galaxyApples = 0;
+                    if (parsed[k].darkApples === undefined) parsed[k].darkApples = 0;
+                    if (parsed[k].salhiniApples === undefined) parsed[k].salhiniApples = 0;
+                    if (parsed[k].bloodmoonApples === undefined) parsed[k].bloodmoonApples = 0;
+                    if (parsed[k].moonyApples === undefined) parsed[k].moonyApples = 0;
+                    if (parsed[k].potions === undefined) parsed[k].potions = {};
+                });
+                accounts = parsed;
+            }
+            if (savedActive && accounts[savedActive]) { currentAccountName = savedActive; } 
+            else { currentAccountName = Object.keys(accounts)[0] || "Default"; }
+            renderAccountSelect(); updateAdventureHUD();
+        }
+
+        function saveAllAccounts() {
+            localStorage.setItem("fastCollect_accounts", JSON.stringify(accounts));
+            localStorage.setItem("fastCollect_activeAccount", currentAccountName);
+            updateAdventureHUD();
+        }
+
+        function renderAccountSelect() {
+            const select = document.getElementById("account-select");
+            select.innerHTML = "";
+            Object.keys(accounts).forEach(name => {
+                const opt = document.createElement("option"); opt.value = name; opt.innerText = name;
+                if(name === currentAccountName) opt.selected = true; select.appendChild(opt);
+            });
+        }
+
+        function createNewAccount() {
+            const name = prompt("Enter new account name:"); if(!name) return; const cleanName = name.trim(); if(cleanName === "") return;
+            if(accounts[cleanName]) { alert("This account name already exists!"); return; }
+            accounts[cleanName] = { money: 0, redApples: 0, greenApples: 0, goldenApples: 0, diamondApples: 0, candyApples: 0, lavaApples: 0, galaxyApples: 0, darkApples: 0, salhiniApples: 0, bloodmoonApples: 0, moonyApples: 0, potions: {} };
+            currentAccountName = cleanName; saveAllAccounts(); renderAccountSelect();
+        }
+        function switchAccount(name) { if(accounts[name]) { currentAccountName = name; saveAllAccounts(); } }
+        function deleteAccount() {
+            if(Object.keys(accounts).length <= 1) { alert("You must keep at least one active account!"); return; }
+            if(confirm(`Are you sure you want to permanently delete account "${currentAccountName}"?`)) {
+                delete accounts[currentAccountName]; currentAccountName = Object.keys(accounts)[0]; saveAllAccounts(); renderAccountSelect();
+            }
+        }
+        function exportAccount() {
+            const dataStr = JSON.stringify({ name: currentAccountName, data: accounts[currentAccountName] });
+            const token = btoa(unescape(encodeURIComponent(dataStr))); prompt("Copy your backup secure key:", token);
+        }
+        function importAccount() {
+            const token = prompt("Paste your backup secure key here:"); if(!token) return;
+            try {
+                const decodedStr = decodeURIComponent(escape(atob(token.trim()))); const parsed = JSON.parse(decodedStr);
+                if(parsed.name && parsed.data) {
+                    if(accounts[parsed.name]) { if(!confirm(`An account named "${parsed.name}" already exists here. Overwrite it?`)) return; }
+                    accounts[parsed.name] = parsed.data; currentAccountName = parsed.name; saveAllAccounts(); renderAccountSelect(); alert("Account imported successfully!");
+                }
+            } catch(e) { alert("Error reading key. Make sure you copied the full string."); }
+        }
+
+        function switchInventoryTab(tabName) {
+            currentInventoryTab = tabName;
+            document.getElementById("tab-apples-btn").className = tabName === 'apples' ? "tab-btn active" : "tab-btn";
+            document.getElementById("tab-potions-btn").className = tabName === 'potions' ? "tab-btn active" : "tab-btn";
+            updateAdventureHUD();
+        }
+
+        function updateAdventureHUD() {
+            const activeData = accounts[currentAccountName] || { money: 0, redApples: 0, greenApples: 0, goldenApples: 0, diamondApples: 0, candyApples: 0, lavaApples: 0, galaxyApples: 0, darkApples: 0, salhiniApples: 0, bloodmoonApples: 0, moonyApples: 0, potions: {} };
+            document.getElementById("inv-money-counter").innerText = fmtNum(activeData.money);
+            document.getElementById("shop-money-counter").innerText = fmtNum(activeData.money);
+            
+            document.getElementById("pinned-money-counter").innerText = fmtNum(activeData.money);
+            
+            const grid = document.getElementById("inventory-grid"); grid.innerHTML = "";
+
+            if (currentInventoryTab === "apples") {
+                const itemTypes = [
+                    { id: 'red', content: IMG_FRUITS.red, count: activeData.redApples },
+                    { id: 'green', content: IMG_FRUITS.green, count: activeData.greenApples },
+                    { id: 'golden', content: IMG_FRUITS.golden, count: activeData.goldenApples },
+                    { id: 'diamond', content: IMG_FRUITS.diamond, count: activeData.diamondApples },
+                    { id: 'candy', content: IMG_FRUITS.candy, count: activeData.candyApples },
+                    { id: 'lava', content: IMG_FRUITS.lava, count: activeData.lavaApples || 0 },
+                    { id: 'galaxy', content: IMG_FRUITS.galaxy, count: activeData.galaxyApples || 0 },
+                    { id: 'dark', content: IMG_FRUITS.dark, count: activeData.darkApples || 0 },
+                    { id: 'moony', content: IMG_FRUITS.moony, count: activeData.moonyApples || 0 },
+                    { id: 'salhini', content: IMG_FRUITS.salhini, count: activeData.salhiniApples || 0 },
+                    { id: 'bloodmoon', content: IMG_FRUITS.bloodmoon, count: activeData.bloodmoonApples || 0 }
+                ];
+                itemTypes.forEach(item => {
+                    if (item.count > 0) {
+                        const card = document.createElement("div"); card.className = "inv-item-card";
+                        card.innerHTML = `<div class="inv-item-info"><img src="${item.content}" class="inv-item-icon-img" /><span class="inv-item-count">x${fmtNum(item.count)}</span></div><button class="sell-btn" onclick="event.stopPropagation(); openSellModal('${item.id}')">💱</button>`;
+                        grid.appendChild(card);
+                    }
+                });
+            } else if (currentInventoryTab === "potions") {
+                SHOP_PRODUCTS.forEach(prod => {
+                    const count = activeData.potions[prod.id] || 0;
+                    if (count > 0) {
+                        const card = document.createElement("div"); card.className = "inv-item-card";
+                        card.onclick = () => usePotion(prod.id);
+                        card.innerHTML = `
+                            <div class="inv-item-info">
+                                <img src="${IMG_POTIONS[prod.type]}" class="inv-item-icon-img" />
+                                <div style="display:flex; flex-direction:column; gap:2px;">
+                                    <span style="font-size:10px; font-weight:900;">Luck x${prod.multiplier}</span>
+                                    <span style="font-size:8px; color:#aaa;">${prod.duration}s</span>
+                                </div>
+                                <span class="inv-item-count" style="margin-left:10px;">x${fmtNum(count)}</span>
+                            </div>
+                            <button class="sell-btn" onclick="event.stopPropagation(); sellPotion('${prod.id}')">💱</button>
+                        `;
+                        grid.appendChild(card);
+                    }
+                });
+            }
+        }
+
+        function toggleInventory(show) {
+            const invScreen = document.getElementById("inventory-screen");
+            if (show) { toggleShop(false); updateAdventureHUD(); invScreen.style.display = "flex"; gameActive = false; } 
+            else { invScreen.style.display = "none"; gameActive = true; update(); }
+        }
+
+        /* Fonctions de l'interface Boutique (Shop) */
+        function toggleShop(show) {
+            const shopScreen = document.getElementById("shop-screen");
+            if (show) { toggleInventory(false); renderShopGrid(); shopScreen.style.display = "flex"; gameActive = false; } 
+            else { shopScreen.style.display = "none"; gameActive = true; update(); }
+        }
+
+        function renderShopGrid() {
+            const grid = document.getElementById("shop-grid"); grid.innerHTML = "";
+            SHOP_PRODUCTS.forEach(prod => {
+                const card = document.createElement("div");
+                card.className = "shop-item-card";
+                card.onclick = () => buyPotion(prod);
+                card.innerHTML = `
+                    <div class="shop-item-visual">
+                        <span class="shop-item-title">Luck x${prod.multiplier}</span>
+                        <img src="${IMG_POTIONS[prod.type]}" class="shop-item-img" />
+                        <span class="shop-item-duration">${prod.duration}s</span>
+                    </div>
+                    <div class="shop-item-price-overlay">$${fmtNum(prod.price)}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function buyPotion(product) {
+            const activeData = accounts[currentAccountName]; if (!activeData) return;
+            if (activeData.money < product.price) { alert("You don't have enough money to buy this potion!"); return; }
+            
+            showCustomConfirm("Are you sure you want to buy this potion?", (accepted) => {
+                if (accepted) {
+                    activeData.money -= product.price;
+                    if (!activeData.potions[product.id]) activeData.potions[product.id] = 0;
+                    activeData.potions[product.id]++;
+                    saveAllAccounts();
+                    renderShopGrid();
+                }
+            });
+        }
+
+        function sellPotion(potionId) {
+            const activeData = accounts[currentAccountName]; if (!activeData) return;
+            const currentStock = activeData.potions[potionId] || 0;
+            if (currentStock <= 0) return;
+
+            const product = SHOP_PRODUCTS.find(p => p.id === potionId); if (!product) return;
+            const paybackPrice = Math.floor(product.price * 0.8);
+
+            showCustomConfirm("Are you sure you want to sell this potion (You will only keep 80% of the price)?", (accepted) => {
+                if (accepted) {
+                    activeData.potions[potionId]--;
+                    activeData.money += paybackPrice;
+                    saveAllAccounts();
+                }
+            });
+        }
+
+        function usePotion(potionId) {
+            const activeData = accounts[currentAccountName]; if (!activeData) return;
+            const currentStock = activeData.potions[potionId] || 0;
+            if (currentStock <= 0) return;
+
+            const product = SHOP_PRODUCTS.find(p => p.id === potionId); if (!product) return;
+
+            showCustomConfirm("Are you sure you want to use this potion?", (accepted) => {
+                if (accepted) {
+                    activeData.potions[potionId]--;
+                    saveAllAccounts();
+                    
+                    // Application instantanée de l'effet de chance de la potion dans la partie
+                    luckMultiplier = product.multiplier;
+                    currentLuck = ((currentGameMode === "adventure") ? 0.20 : 0.05) * luckMultiplier;
+                    
+                    showAdvancedMsg(`You activated Potion ${product.multiplier}x luck!`, 'bottom', getLuckStyle(product.multiplier));
+                    startHudTimer('luck', LUCK_IMAGES[product.multiplier] || IMG_POTIONS[product.type], product.duration, "🍀", () => {
+                        luckMultiplier = 1;
+                        currentLuck = (currentGameMode === "adventure") ? 0.20 : 0.05;
+                    });
+                    toggleInventory(false);
+                }
+            });
+        }
+
+        function openSellModal(type) {
+            activeSellType = type; const inputField = document.getElementById("sell-quantity"); inputField.value = "";
+            const title = document.getElementById("sell-title");
+            if (type === 'red') title.innerText = "Sell Red Apples (+1$)";
+            else if (type === 'green') title.innerText = "Sell Green Apples (+3$)";
+            else if (type === 'golden') title.innerText = "Sell Golden Apples (+7$)";
+            else if (type === 'diamond') title.innerText = "Sell Diamond Apples (+15$)";
+            else if (type === 'candy') title.innerText = "Sell Candy Apples (+50$)";
+            else if (type === 'lava') title.innerText = "Sell Lava Apples (+200$)";
+            else if (type === 'galaxy') title.innerText = "Sell Galaxy Apples (+500$)";
+            else if (type === 'dark') title.innerText = "Sell Dark Apples (+1K$)";
+            else if (type === 'salhini') title.innerText = "Sell Salhini Appelini (+676.8K$)";
+            else if (type === 'bloodmoon') title.innerText = "Sell Bloodmoon Apple (+6.7M$)";
+            else if (type === 'moony') title.innerText = "Sell Moony Apple (+50K$)";
+            document.getElementById("sell-modal").style.display = "flex";
+        }
+        function closeSellModal() { document.getElementById("sell-modal").style.display = "none"; activeSellType = null; }
+
+        function confirmTransaction() {
+            if (!activeSellType) return; const activeData = accounts[currentAccountName]; if (!activeData) return;
+            const inputVal = document.getElementById("sell-quantity").value.trim();
+            let currentStock = 0, unitPrice = 0;
+            if (activeSellType === 'red') { currentStock = activeData.redApples; unitPrice = 1; }
+            else if (activeSellType === 'green') { currentStock = activeData.greenApples; unitPrice = 3; }
+            else if (activeSellType === 'golden') { currentStock = activeData.goldenApples; unitPrice = 7; }
+            else if (activeSellType === 'diamond') { currentStock = activeData.diamondApples; unitPrice = 15; }
+            else if (activeSellType === 'candy') { currentStock = activeData.candyApples; unitPrice = 50; }
+            else if (activeSellType === 'lava') { currentStock = activeData.lavaApples || 0; unitPrice = 200; }
+            else if (activeSellType === 'galaxy') { currentStock = activeData.galaxyApples || 0; unitPrice = 500; }
+            else if (activeSellType === 'dark') { currentStock = activeData.darkApples || 0; unitPrice = 1000; }
+            else if (activeSellType === 'salhini') { currentStock = activeData.salhiniApples || 0; unitPrice = 676767; }
+            else if (activeSellType === 'bloodmoon') { currentStock = activeData.bloodmoonApples || 0; unitPrice = 6666666; }
+            else if (activeSellType === 'moony') { currentStock = activeData.moonyApples || 0; unitPrice = 50000; }
+
+            let amountToSell = 0;
+            if (inputVal.toLowerCase() === 'max') { amountToSell = currentStock; } 
+            else {
+                let parsedInt = parseInt(inputVal); if (isNaN(parsedInt) || parsedInt <= 0) { alert("Please enter a valid amount or type 'Max'."); return; }
+                amountToSell = parsedInt > currentStock ? currentStock : parsedInt;
+            }
+            if (amountToSell <= 0) { alert("You don't have any apples of this kind to sell!"); closeSellModal(); return; }
+
+            if (activeSellType === 'red') activeData.redApples -= amountToSell;
+            else if (activeSellType === 'green') activeData.greenApples -= amountToSell;
+            else if (activeSellType === 'golden') activeData.goldenApples -= amountToSell;
+            else if (activeSellType === 'diamond') activeData.diamondApples -= amountToSell;
+            else if (activeSellType === 'candy') activeData.candyApples -= amountToSell;
+            else if (activeSellType === 'lava') activeData.lavaApples -= amountToSell;
+            else if (activeSellType === 'galaxy') activeData.galaxyApples -= amountToSell;
+            else if (activeSellType === 'dark') activeData.darkApples -= amountToSell;
+            else if (activeSellType === 'salhini') activeData.salhiniApples -= amountToSell;
+            else if (activeSellType === 'bloodmoon') activeData.bloodmoonApples -= amountToSell;
+            else if (activeSellType === 'moony') activeData.moonyApples -= amountToSell;
+
+            activeData.money += (amountToSell * unitPrice); saveAllAccounts(); closeSellModal(); updateAdventureHUD(); 
+        }
+
+        // Animation Pomme Géante style Logo DVD qui rebondit
+        let dvdApple = { x: 100, y: 100, dx: 4, dy: 4, size: 120 };
+        function updateDvdApple() {
+            if (gameActive) return;
+            dvdCtx.clearRect(0, 0, dvdCanvas.width, dvdCanvas.height);
+            
+            dvdApple.x += dvdApple.dx;
+            dvdApple.y += dvdApple.dy;
+
+            if (dvdApple.x + dvdApple.size / 2 >= dvdCanvas.width - 10 || dvdApple.x - dvdApple.size / 2 <= 10) {
+                dvdApple.dx = -dvdApple.dx;
+            }
+            if (dvdApple.y + dvdApple.size / 2 >= dvdCanvas.height - 10 || dvdApple.y - dvdApple.size / 2 <= 10) {
+                dvdApple.dy = -dvdApple.dy;
+            }
+
+            let imgObj = IMAGES_CACHE['red'];
+            if (imgObj && imgObj.complete) {
+                dvdCtx.drawImage(imgObj, dvdApple.x - dvdApple.size / 2, dvdApple.y - dvdApple.size / 2, dvdApple.size, dvdApple.size);
+            }
+
+            requestAnimationFrame(updateDvdApple);
+        }
+
+        resize(); updateDvdApple(); loadAllAccounts();
+
+        function leaveGame() {
+            gameActive = false; if (gameSpawnInterval) { clearInterval(gameSpawnInterval); gameSpawnInterval = null; }
+            apples = []; ball.speed = ball.baseSpeed; luckMultiplier = 1; setSpawnPanel(false); if (currentGameMode === "adventure") { saveAllAccounts(); }
+            document.getElementById("home-screen").style.display = "flex";
+            document.getElementById("score").style.display = "none"; document.getElementById("timer-display").style.display = "none";
+            document.getElementById("adventure-hud").style.display = "none"; document.getElementById("leave-game-btn").style.display = "none"; document.getElementById("side-buttons").style.display = "none";
+            document.getElementById("inventory-screen").style.display = "none"; document.getElementById("shop-screen").style.display = "none";
+            updateDvdApple();
+        }
+
+        function startGame() {
+            currentGameMode = "arcade"; luckMultiplier = 1; currentLuck = 0.05; setSpawnPanel(false); 
+            document.getElementById("home-screen").style.display = "none";
+            document.getElementById("score").style.display = "block"; document.getElementById("timer-display").style.display = "block";
+            document.getElementById("adventure-hud").style.display = "none"; document.getElementById("leave-game-btn").style.display = "flex"; document.getElementById("side-buttons").style.display = "none";
+            score = 0; timeLeft = 60; document.getElementById("score").innerText = "Score: " + fmtNum(score); document.getElementById("timer-display").innerText = "Timer: " + timeLeft;
+            gameActive = true; apples = []; ball.speed = ball.baseSpeed; 
+            
+            spawnApple(false, 5); 
+            
+            update(); countdown();
+            if (gameSpawnInterval) clearInterval(gameSpawnInterval);
+            gameSpawnInterval = setInterval(() => { if(gameActive && currentGameMode === "arcade") spawnApple(false, 1); }, 1000);
+        }
+
+        function startAdventure() {
+            currentGameMode = "adventure"; luckMultiplier = 1; currentLuck = 0.20; resetSpawnPanel(); setSpawnPanel(true); 
+            document.getElementById("home-screen").style.display = "none";
+            document.getElementById("score").style.display = "none"; document.getElementById("timer-display").style.display = "none";
+            document.getElementById("adventure-hud").style.display = "block"; document.getElementById("leave-game-btn").style.display = "flex"; document.getElementById("side-buttons").style.display = "flex";
+            updateAdventureHUD(); gameActive = true; apples = []; ball.speed = ball.baseSpeed; 
+            
+            spawnApple(false, 5); 
+            
+            update(); 
+            if (gameSpawnInterval) clearInterval(gameSpawnInterval);
+            gameSpawnInterval = setInterval(() => { if(gameActive && currentGameMode === "adventure") spawnApple(false, 1); }, 1000);
+        }
+
+        channel.unsubscribe();
+        channel.subscribe((msg) => {
+            const d = msg.data; if (!gameActive) return; 
+            if (msg.name === 'luck') { 
+                luckMultiplier = d.mult; currentLuck = ((currentGameMode === "adventure") ? 0.20 : 0.05) * luckMultiplier;
+                showAdvancedMsg(`FelixRouge activated ${d.mult}x luck!`, 'bottom', getLuckStyle(d.mult)); 
+                startHudTimer('luck', LUCK_IMAGES[d.mult], d.time, "🍀", () => { luckMultiplier = 1; currentLuck = (currentGameMode === "adventure") ? 0.20 : 0.05; }); 
+            }
+
+            if (msg.name === 'customLuck') {
+                luckMultiplier = d.mult; currentLuck = ((currentGameMode === "adventure") ? 0.20 : 0.05) * luckMultiplier;
+                const luckUrl = "https://static.wikia.nocookie.net/stealabr/images/0/09/30x_Luck.webp/revision/latest/scale-to-width/360?cb=20260515140747";
+                if (LUCK_IMAGES[d.mult]) { showAdvancedMsg("FelixRouge activated " + d.mult + "x luck for " + d.time + " seconds!", 'bottom', getLuckStyle(d.mult)); }
+                else { showAdvancedMsg("<span style='color: #ff3838; font-weight: 900;'>FelixRouge</span> activated " + d.mult + "x luck for " + d.time + " seconds!", 'bottom', {color: 'white'}); }
+                startHudTimer('custom_luck', LUCK_IMAGES[d.mult] || luckUrl, d.time, "🍀", () => { luckMultiplier = 1; currentLuck = (currentGameMode === "adventure") ? 0.20 : 0.05; });
+            }
+
+            if (msg.name === 'customSpawn' && currentGameMode === "adventure") {
+                const appleType = d.type.toLowerCase(); spawnAppleAdmin(appleType, d.count);
+                if (appleType === 'lava') { showAdvancedMsg("<span style='color: #ff3838; font-weight: 900;'>FelixRouge</span> spawned a Lava Apple in your server!", 'bottom', {color: '#FF4D00'}); } 
+                else if (appleType === 'galaxy') { showAdvancedMsg("<span style='color: #ff3838; font-weight: 900;'>FelixRouge</span> spawned a Galaxy Apple in your server!", 'bottom', {isGalaxy: true}); } 
+                else if (appleType === 'dark') { showAdvancedMsg("<span style='color: #ff3838; font-weight: 900;'>FelixRouge</span> spawned a Dark Apple in your server!", 'bottom', {color: 'black'}); }
+                else if (appleType === 'salhini') { showAdvancedMsg("A Salhini Appelini spawned in your server!", 'bottom', {color: '#F5D7C3'}); }
+                else if (appleType === 'bloodmoon') { showAdvancedMsg("A Bloodmoon apple spawned in your server!", 'bottom', {color: '#8b0000'}); }
+                else if (appleType === 'moony') { showAdvancedMsg("A Moony Apple spawned in your server!", 'bottom', {stops: ['#BFC1C2', '#F8F8F8', '#9EA0A2', '#ECECEC']}); }
+            }
+
+            if (msg.name === 'greentime') { 
+                let oldL = currentLuck; currentLuck = 1.0; 
+                showAdvancedMsg(`FelixRouge activated <span class="txt-violet">Green time</span>!`, 'bottom', getGTStyle(d.time)); 
+                startHudTimer('gt', "https://static.vecteezy.com/system/resources/previews/016/733/263/non_2x/cute-illustration-of-a-green-apple-in-cartoon-style-on-isolated-background-vector.jpg", d.time, "🍏", () => { currentLuck = oldL; }); 
+            }
+            if (msg.name === 'doublepoints') { scoreMult = 2; appleMultiplier = 2; showAdvancedMsg(`FelixRouge activated <span class="txt-violet">Double Points</span>!`, 'bottom', {isRainbow: true}); startHudTimer('dp', "https://fridg-front.s3.amazonaws.com/media/CACHE/images/products/lot-de-2-pommes-fuji_fEa1aJa/8e7b583a2aa9503e79230ddfaf062316.jpg", d.time, "🍎", () => { scoreMult = 1; appleMultiplier = 1; }); }
+            
+            if (msg.name === 'spawn') { spawnAppleAdmin('green', d.count); showAdvancedMsg(`FelixRouge spawned ${d.count} Green Apples!`, 'bottom', getSStyle(d.count)); }
+            if (msg.name === 'spawnGolden' && currentGameMode === "adventure") { spawnAppleAdmin('golden', d.count); let gColor = '#ffff00'; if(d.count === 3) gColor = '#A020F0'; if(d.count === 5) gColor = '#000000'; showAdvancedMsg(`FelixRouge spawned ${d.count} Golden Apples!`, 'bottom', {color: gColor}); }
+            if (msg.name === 'spawnDiamond' && currentGameMode === "adventure") { spawnAppleAdmin('diamond', d.count); let dColor = '#ffff00'; if(d.count === 2) dColor = '#A020F0'; if(d.count === 3) dColor = '#000000'; showAdvancedMsg(`FelixRouge spawned ${d.count} Diamond Apples!`, 'bottom', {color: dColor}); }
+            if (msg.name === 'spawnCandy' && currentGameMode === "adventure") { spawnAppleAdmin('candy', d.count); showAdvancedMsg(`FelixRouge spawned ${d.count} Candy Apple!`, 'bottom', {isRainbow: true}); }
+            
+            if (msg.name === 'ballSpeed') { ball.baseSpeed = BASE_BALL_SPEED * d.mult; ball.speed = ball.baseSpeed; showAdvancedMsg(`FelixRouge set ball speed to x${d.mult}`, 'bottom', d.mult >= 2 ? {color:'black'} : {color:'white'}); }
+            if (msg.name === 'announce') showAdvancedMsg(d.text, 'top', {color: 'white'});
+            if (msg.name === 'clearLuck') { 
+                luckMultiplier = 1; currentLuck = (currentGameMode === "adventure") ? 0.20 : 0.05; scoreMult = 1; appleMultiplier = 1; 
+                Object.keys(activeTimers).forEach(id => { clearInterval(activeTimers[id].interval); let c = document.getElementById('event-'+id); if(c) c.remove(); delete activeTimers[id]; }); 
+            }
+            
+            if (msg.name === 'reset') {
+                ball.speed = ball.baseSpeed * 3; showAdvancedMsg("Ball Speed set to x3 due to imminent server reseting", 'bottom', {isRainbow: true}); let rTime = 5;
+                const containerTop = document.getElementById('msg-container-top'); const resetDiv = document.createElement('div'); resetDiv.className = 'admin-msg'; resetDiv.style.color = '#ff4757'; resetDiv.innerHTML = `⚠️SERVERS RESET IN ${rTime}s`; containerTop.appendChild(resetDiv);
+                let rInterval = setInterval(() => { rTime--; if(rTime <= 0) { clearInterval(rInterval); resetDiv.remove(); location.reload(); } else { resetDiv.innerHTML = `⚠️SERVERS RESET IN ${rTime}s`; } }, 1000);
+            }
+        });
+
+        function getLuckStyle(m) { if(m==2) return {color:'#32CD32'}; if(m==4) return {color:'#DAA520'}; if(m==6) return {color:'#DA70D6'}; if(m==8) return {isRainbow:true}; if(m==10) return {color:'black'};
+            if(m==12) return {stops:['#000000','#FFD700']};                 // noir et jaune
+            if(m==15) return {stops:['#FF2D2D','#32CD32']};                 // rouge et vert
+            if(m==20) return {color:'#FF69B4'};                             // rose
+            if(m==25) return {stops:['#32CD32','#32CD32','#FFD700']};       // 2x vert, 1x jaune
+            if(m==30) return {stops:['#FF2D2D','#FF8C00']};                 // rouge et orange
+            if(m==35) return {stops:['#1ECBE1','#1ECBE1','#F6D365']};       // 2x bleu plage, 1x jaune sable
+            return {color:'white'}; }
+        function getGTStyle(s) { if(s==5) return {color:'#32CD32'}; if(s==10) return {color:'#DAA520'}; if(s==15) return {color:'#DA70D6'}; if(s==20) return {isRainbow:true}; if(s==30) return {color:'black'}; return {color:'white'}; }
+        function getTStyle(s) { if(s==10) return {color:'#32CD32'}; if(s==15) return {color:'#DAA520'}; if(s==20) return {color:'#DA70D6'}; if(s>=30) return {isRainbow:true}; return {color:'white'}; }
+        function getSStyle(c) { if(c==3) return {color:'#DAA520'}; if(c==5) return {color:'#DA70D6'}; if(c==7) return {isRainbow:true}; if(c>=10) return {color:'black'}; return {color:'white'}; }
+
+        function showAdvancedMsg(html, pos, style) {
+            const container = document.getElementById(pos === 'top' ? 'msg-container-top' : 'msg-container-bottom');
+            const div = document.createElement('div'); div.className = 'admin-msg';
+            if(style.isRainbow) div.innerHTML = `<span class="rainbow-text">${html}</span>`;
+            else if(style.isGalaxy) div.innerHTML = `<span class="galaxy-text">${html}</span>`;
+            else if(style.stops) div.innerHTML = `<span class="gradient-text" style="background-image: linear-gradient(to right, ${style.stops.join(', ')});">${html}</span>`;
+            else { div.style.color = style.color; div.innerHTML = html; if(style.color === 'black' || style.color === '#000000') div.style.textShadow = "0px 0px 8px rgba(255,255,255,0.7)"; }
+            container.appendChild(div); setTimeout(() => div.remove(), 5000);
+        }
+
+        function startHudTimer(id, url, dur, fallbackEmoji, onE) {
+            let container = document.getElementById('hud-events'); if (activeTimers[id]) { activeTimers[id].remaining += dur; return; }
+            let card = document.createElement('div'); card.className = 'event-card'; card.id = 'event-' + id;
+            card.innerHTML = `<div class="img-container"><span>${fallbackEmoji}</span><img src="${url}" onerror="this.style.display='none'"></div><div class="event-timer" id="timer-${id}">${dur}s</div>`;
+            container.appendChild(card);
+            activeTimers[id] = { remaining: dur, interval: setInterval(() => {
+                activeTimers[id].remaining--;
+                if (activeTimers[id].remaining <= 0 || !gameActive) { clearInterval(activeTimers[id].interval); card.remove(); delete activeTimers[id]; if(onE) onE(); }
+                else { let t = document.getElementById('timer-' + id); if(t) t.innerText = activeTimers[id].remaining + "s"; }
+            }, 1000)};
+        }
+
+        // ===== Panneau des spawns =====
+        // Ordre des pommes, de la moins bonne à la meilleure. "Good spawn" = lava ou plus.
+        const APPLE_ORDER = ['red', 'green', 'golden', 'diamond', 'candy', 'lava', 'galaxy', 'dark', 'moony', 'salhini', 'bloodmoon'];
+        const GOOD_SPAWN_MIN_RANK = APPLE_ORDER.indexOf('lava');
+        const LATEST_SPAWN_LIMIT = 2;      // "Latest spawn" : les 2 dernières pommes
+        const LATEST_GOOD_SPAWN_LIMIT = 1; // "Latest good spawn" : 1 seule pomme
+        const BEST_SPAWN_LIMIT = 1;        // "Best spawn" : 1 seule pomme
+        let spawnLog = { latest: [], latestGood: [], best: [] };
+
+        function appleRank(type) { return APPLE_ORDER.indexOf(type); }
+
+        function setSpawnPanel(show) { document.getElementById("spawn-panel").style.display = show ? "block" : "none"; }
+
+        function resetSpawnPanel() { spawnLog = { latest: [], latestGood: [], best: [] }; renderSpawnPanel(); }
+
+        function recordSpawn(type) {
+            const rank = appleRank(type); if (rank < 0) return;
+            spawnLog.latest = [type, ...spawnLog.latest].slice(0, LATEST_SPAWN_LIMIT);
+            if (rank >= GOOD_SPAWN_MIN_RANK) spawnLog.latestGood = [type, ...spawnLog.latestGood].slice(0, LATEST_GOOD_SPAWN_LIMIT);
+            // best spawn = lava ou plus ; à rang égal, le tri stable garde la pomme la plus récente devant
+            if (rank >= GOOD_SPAWN_MIN_RANK) spawnLog.best = [type, ...spawnLog.best].sort((a, b) => appleRank(b) - appleRank(a)).slice(0, BEST_SPAWN_LIMIT);
+            renderSpawnPanel();
+        }
+
+        function renderSpawnPanel() {
+            const fill = (id, list) => {
+                document.getElementById(id).innerHTML = list.length
+                    ? list.map(t => `<img src="${IMG_FRUITS[t]}" alt="${t}" title="${t}">`).join('')
+                    : '<span class="spawn-empty">-</span>';
+            };
+            fill('spawn-latest', spawnLog.latest);
+            fill('spawn-latest-good', spawnLog.latestGood);
+            fill('spawn-best', spawnLog.best);
+        }
+
+        function spawnAppleAdmin(type, count) {
+            if(!gameActive) return;
+            let size = (type === 'green') ? 25 : 32; if(type === 'red') size = 25;
+            for(let i=0; i<count; i++) { apples.push({ x: Math.random() * (canvas.width - 60), y: Math.random() * (canvas.height - 60), size: size, type: type }); if (currentGameMode === "adventure") recordSpawn(type); }
+        }
+
+        function spawnApple(fG, c) {
+            if(!gameActive) return;
+            for(let i=0; i<c; i++) {
+                if (currentGameMode === "arcade") {
+                    let isOp = fG || Math.random() < currentLuck;
+                    apples.push({ x: Math.random() * (canvas.width - 60), y: Math.random() * (canvas.height - 60), size: 25, type: isOp ? 'green' : 'red' });
+                } 
+                else if (currentGameMode === "adventure") {
+                    let rng = Math.random();
+                    let bloodmoonChance = 0.00000666 * luckMultiplier;
+                    let darkChance = 0.001 * luckMultiplier;
+                    let salhiniChance = 0.00001 * luckMultiplier;
+                    let moonyChance = 0.0001 * luckMultiplier;
+                    let galaxyChance = 0.003 * luckMultiplier;
+                    let lavaChance = 0.005 * luckMultiplier;
+                    let candyChance = 0.01 * luckMultiplier;
+                    let diamondChance = 0.05 * luckMultiplier;
+                    let goldenChance = 0.10 * luckMultiplier;
+
+                    if (!fG && rng < bloodmoonChance) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 36, type: 'bloodmoon' }); showAdvancedMsg("A Bloodmoon apple spawned in your server!", 'bottom', {color: '#8b0000'}); }
+                    else if (!fG && rng < (bloodmoonChance + salhiniChance)) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: 'salhini' }); showAdvancedMsg("A Salhini Appelini spawned in your server!", 'bottom', {color: '#F5D7C3'}); }
+                    else if (!fG && rng < (bloodmoonChance + salhiniChance + moonyChance)) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: 'moony' }); showAdvancedMsg("A Moony Apple spawned in your server!", 'bottom', {stops: ['#BFC1C2', '#F8F8F8', '#9EA0A2', '#ECECEC']}); }
+                    else if (!fG && rng < (bloodmoonChance + salhiniChance + moonyChance + darkChance)) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: 'dark' }); } 
+                    else if (!fG && rng < (bloodmoonChance + salhiniChance + moonyChance + darkChance + galaxyChance)) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: 'galaxy' }); } 
+                    else if (!fG && rng < (bloodmoonChance + salhiniChance + moonyChance + darkChance + galaxyChance + lavaChance)) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: 'lava' }); } 
+                    else if (!fG && rng < (bloodmoonChance + salhiniChance + moonyChance + darkChance + galaxyChance + lavaChance + candyChance)) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: 'candy' }); } 
+                    else if (!fG && rng < (bloodmoonChance + salhiniChance + moonyChance + darkChance + galaxyChance + lavaChance + candyChance + diamondChance)) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: 'diamond' }); } 
+                    else if (!fG && rng < (bloodmoonChance + salhiniChance + moonyChance + darkChance + galaxyChance + lavaChance + candyChance + diamondChance + goldenChance)) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: 'golden' }); } 
+                    else {
+                        let isOp = fG || Math.random() < currentLuck;
+                        apples.push({ x: Math.random() * (canvas.width - 60), y: Math.random() * (canvas.height - 60), size: 25, type: isOp ? 'green' : 'red' });
+                    }
+                    recordSpawn(apples[apples.length - 1].type);
+                }
+            }
+        }
+
+        function update() {
+            if(!gameActive) return; ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let dx = player.x - ball.x, dy = player.y - ball.y, dist = Math.sqrt(dx*dx+dy*dy);
+            if(dist > 35) { ball.x += (dx/dist)*ball.speed; ball.y += (dy/dist)*ball.speed; }
+            
+            const maxBallSpeed = Math.max(5, ball.baseSpeed); if (ball.speed > maxBallSpeed) { ball.speed = maxBallSpeed; } else if (ball.speed < 1) { ball.speed = 1; }
+
+            ctx.shadowBlur = 0; ctx.shadowColor = "transparent"; ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 40px Nunito"; ctx.textAlign = "center"; 
+            ctx.fillText("🕹️", player.x, player.y); ctx.fillText(ball.emoji, ball.x, ball.y);
+            
+            apples = apples.filter(a => {
+                let hitBox = a.size;
+                if(Math.sqrt((ball.x-a.x)**2 + (ball.y-a.y)**2) < hitBox) {
+                    
+                    if (currentGameMode === "arcade") {
+                        score += (a.type === 'green' ? 3 : 1) * scoreMult; document.getElementById("score").innerText = "Score: " + fmtNum(score);
+                    } 
+                    else if(currentGameMode === "adventure") {
+                        let activeData = accounts[currentAccountName];
+                        if(activeData) {
+                            if(a.type === 'red') activeData.redApples += appleMultiplier;
+                            else if(a.type === 'green') activeData.greenApples += appleMultiplier;
+                            else if(a.type === 'golden') activeData.goldenApples += appleMultiplier;
+                            else if(a.type === 'diamond') activeData.diamondApples += appleMultiplier;
+                            else if(a.type === 'candy') activeData.candyApples += appleMultiplier;
+                            else if(a.type === 'lava') activeData.lavaApples = (activeData.lavaApples || 0) + appleMultiplier;
+                            else if(a.type === 'galaxy') activeData.galaxyApples = (activeData.galaxyApples || 0) + appleMultiplier;
+                            else if(a.type === 'dark') activeData.darkApples = (activeData.darkApples || 0) + appleMultiplier;
+                            else if(a.type === 'salhini') activeData.salhiniApples = (activeData.salhiniApples || 0) + appleMultiplier;
+                            else if(a.type === 'bloodmoon') activeData.bloodmoonApples = (activeData.bloodmoonApples || 0) + appleMultiplier;
+                            else if(a.type === 'moony') activeData.moonyApples = (activeData.moonyApples || 0) + appleMultiplier;
+                            saveAllAccounts();
+                        }
+                    }
+
+                    return false;
+                }
+                
+                // Dessin des halos (Glow effect) pour les pommes spéciales
+                ctx.save();
+                if (a.type === 'salhini') {
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = "rgba(236, 232, 225, 0.9)";
+                } else if (a.type === 'bloodmoon') {
+                    ctx.shadowBlur = 25;
+                    ctx.shadowColor = "rgba(139, 0, 0, 1)";
+                } else if (a.type === 'moony') {
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = "rgba(255, 255, 255, 0.85)";
+                }
+
+                let imgObj = IMAGES_CACHE[a.type];
+                if (imgObj && imgObj.complete) { ctx.drawImage(imgObj, a.x - a.size/2, a.y - a.size/2, a.size, a.size); } 
+                else { ctx.font = "24px Nunito"; ctx.fillText("✨", a.x, a.y); }
+                ctx.restore();
+                return true;
+            });
+            requestAnimationFrame(update);
+        }
+
+        function countdown() {
+            if(!gameActive || currentGameMode !== "arcade") return;
+            if (timeLeft > 0) { timeLeft--; document.getElementById("timer-display").innerText = "Timer: " + timeLeft; setTimeout(countdown, 1000); }
+            else { 
+                gameActive = false; if (gameSpawnInterval) { clearInterval(gameSpawnInterval); gameSpawnInterval = null; }
+                setTimeout(() => { if(confirm("Game Over! Restart?")) { startGame(); } else { leaveGame(); } }, 100); 
+            }
+        }
+
+        window.addEventListener("mousemove", (e) => { player.x = e.clientX; player.y = e.clientY; });
+    </script>
+</body>
+</html>
