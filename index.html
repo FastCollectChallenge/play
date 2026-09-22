@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fast Collect Challenge</title>
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;700;900&family=Press+Start+2P&family=Roboto:wght@600&family=Source+Sans+3:wght@600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;700;900&family=Press+Start+2P&family=Source+Sans+3:wght@600&display=swap" rel="stylesheet">
     <style>
         * { font-family: 'Press Start 2P', cursive !important; font-synthesis: none; }
         /* Le panneau des spawns garde la police normale */
@@ -27,7 +27,7 @@
         .pinned-money:hover { transform: scale(1.08); background-color: #e1b12c; }
 
         /* Styles des écrans d'interfaces overlays (Inventory & Shop) */
-        #inventory-screen, #shop-screen { position: fixed; top: 5vh; left: 5vw; width: 90vw; height: 90vh; background: rgba(0, 0, 0, 0.55); z-index: 1000; border-radius: 25px; border: 3px solid rgba(255,255,255,0.2); backdrop-filter: blur(8px); display: none; flex-direction: column; padding: 30px; box-sizing: border-box; color: white; }
+        #inventory-screen, #shop-screen, #index-screen { position: fixed; top: 5vh; left: 5vw; width: 90vw; height: 90vh; background: rgba(0, 0, 0, 0.55); z-index: 1000; border-radius: 25px; border: 3px solid rgba(255,255,255,0.2); backdrop-filter: blur(8px); display: none; flex-direction: column; padding: 30px; box-sizing: border-box; color: white; }
         .screen-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
         .money-badge { background: #f1c40f; color: #2c3e50; font-weight: 700; font-size: 14px; padding: 10px 30px; border-radius: 50px; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .close-screen-btn { background: #c23616; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 10px; }
@@ -39,6 +39,11 @@
         .tab-btn.active { background: #487eb0; border-color: #fff; }
 
         #inventory-grid, #shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; overflow-y: auto; flex-grow: 1; padding-right: 10px; align-content: start; }
+        #index-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; overflow-y: auto; flex-grow: 1; padding-right: 10px; align-content: start; }
+        .index-item-card { background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255,255,255,0.15); border-radius: 20px; padding: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .index-item-img { width: 100%; max-width: 110px; aspect-ratio: 1 / 1; object-fit: contain; }
+        .index-item-img.locked { filter: brightness(0); opacity: 0.85; }
+        .index-item-name { font-size: 12px; font-weight: 700; text-align: center; color: #f5f6fa; }
         
         /* Cartes d'items */
         .inv-item-card { background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255,255,255,0.15); border-radius: 25px; height: 90px; display: flex; align-items: center; justify-content: space-between; padding: 0 25px; position: relative; overflow: hidden; transition: background 0.2s, border-color 0.2s; cursor: pointer; }
@@ -86,7 +91,7 @@
 
         #msg-container-top { position: fixed; top: 60px; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 10000; pointer-events: none; }
         #msg-container-bottom { position: fixed; bottom: 150px; left: 0; width: 100%; display: flex; flex-direction: column-reverse; align-items: center; z-index: 10000; pointer-events: none; }
-        .admin-msg { font-family: 'Roboto', sans-serif !important; font-weight: 600 !important; font-size: 26px; text-align: center; text-shadow: 2px 2px 10px rgba(0,0,0,0.9); margin: 5px 0; width: 100%; }
+        .admin-msg { font-size: 26px; text-align: center; text-shadow: 2px 2px 10px rgba(0,0,0,0.9); margin: 5px 0; width: 100%; }
         .txt-violet { color: #A020F0; }
         .rainbow-text { background: linear-gradient(to right, #ff9999, #ffcc99, #ffff99, #99ff99, #99ccff, #cc99ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block; filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.3)); }
         .galaxy-text { background: linear-gradient(to right, #ffb3ff, #b3f0ff, #e6b3ff, #ffffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block; filter: drop-shadow(0px 0px 5px rgba(179,240,255,0.6)); }
@@ -174,13 +179,13 @@
         .side-btn { width: 70px; height: 70px; padding: 0; background: #D9BFF2; border: none; border-radius: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.35); transition: transform 0.2s; }
         .side-btn:hover { transform: scale(1.06); }
         .side-btn img { width: 68%; height: 68%; object-fit: contain; display: block; }
-        .side-btn .side-btn-label { display: none; font-family: 'Roboto', sans-serif; font-weight: 600; color: #2c1a45; font-size: 13px; text-align: center; }
+        .side-btn .side-btn-label { display: none; color: #2c1a45; font-size: 10px; text-align: center; }
         .side-btn:hover img { display: none; }
         .side-btn:hover .side-btn-label, .side-btn.no-img .side-btn-label { display: block; }
 
-        /* Argent : en bas à gauche, plus grand, Roboto SemiBold 600, vert clair, contour blanc */
+        /* Argent : en bas à gauche, plus grand, vert clair, contour blanc */
         #money-hud { position: fixed; left: 20px; bottom: 20px; z-index: 10; }
-        #money-display { font-family: 'Roboto', sans-serif; font-weight: 600; color: #4ADE80; font-size: 48px; line-height: 1; -webkit-text-stroke: 2px #fff; paint-order: stroke fill; text-shadow: 0 0 6px rgba(0,0,0,0.35); }
+        #money-display { color: #4ADE80; font-size: 48px; line-height: 1; -webkit-text-stroke: 2px #fff; paint-order: stroke fill; text-shadow: 0 0 6px rgba(0,0,0,0.35); }
 
         /* Bouton paramètres : icône seule, sans contour ni remplissage */
         #account-settings-btn { background: transparent; border: none; box-shadow: none; padding: 0; overflow: visible; }
@@ -260,6 +265,14 @@
         <div id="shop-grid"></div>
     </div>
 
+    <div id="index-screen">
+        <div class="screen-header">
+            <h2 class="inv-title-text" style="color: #f1c40f;">📖 INDEX</h2>
+            <button class="close-screen-btn" onclick="toggleIndex(false)">Close ✖</button>
+        </div>
+        <div id="index-grid"></div>
+    </div>
+
     <div id="custom-confirm-modal">
         <div class="confirm-box">
             <div class="confirm-msg" id="custom-confirm-message">Message standard</div>
@@ -290,7 +303,7 @@
     <div id="side-buttons">
         <button id="inv-btn" class="side-btn" onclick="toggleInventory(true)"><img src="https://cdn-icons-png.flaticon.com/512/3313/3313637.png" alt="Inventory" onerror="this.style.display=\'none\'; this.parentNode.classList.add(\'no-img\')"><span class="side-btn-label">Inventory</span></button>
         <button id="shop-btn" class="side-btn" onclick="toggleShop(true)"><img src="https://cdn-icons-png.flaticon.com/512/126/126122.png" alt="Shop" onerror="this.style.display=\'none\'; this.parentNode.classList.add(\'no-img\')"><span class="side-btn-label">Shop</span></button>
-        <button id="index-btn" class="side-btn" onclick="toggleIndex(true)"><img src="https://cdn-icons-png.flaticon.com/512/10742/10742635.png" alt="Index" onerror="this.style.display=\'none\'; this.parentNode.classList.add(\'no-img\')"><span class="side-btn-label">Index</span></button>
+        <button id="index-btn" class="side-btn" onclick="toggleIndex(true)"><img src="https://static.thenounproject.com/png/176559-200.png" alt="Index" onerror="this.style.display=\'none\'; this.parentNode.classList.add(\'no-img\')"><span class="side-btn-label">Index</span></button>
     </div>
     <canvas id="gameCanvas"></canvas>
 
@@ -544,8 +557,26 @@
         /* Fonctions de l'interface Boutique (Shop) */
         function toggleShop(show) {
             const shopScreen = document.getElementById("shop-screen");
-            if (show) { toggleInventory(false); renderShopGrid(); shopScreen.style.display = "flex"; gameActive = false; } 
+            if (show) { toggleInventory(false); toggleIndex(false); renderShopGrid(); shopScreen.style.display = "flex"; gameActive = false; } 
             else { shopScreen.style.display = "none"; gameActive = true; update(); }
+        }
+
+        /* Fonctions de l'interface Index (pommes déjà obtenues) */
+        function toggleIndex(show) {
+            const indexScreen = document.getElementById("index-screen");
+            if (show) { toggleInventory(false); toggleShop(false); renderIndexGrid(); indexScreen.style.display = "flex"; gameActive = false; }
+            else { indexScreen.style.display = "none"; gameActive = true; update(); }
+        }
+
+        function renderIndexGrid() {
+            const grid = document.getElementById("index-grid"); grid.innerHTML = "";
+            const activeData = accounts[currentAccountName] || {};
+            APPLE_ORDER.forEach(type => {
+                const discovered = (activeData.discovered && activeData.discovered[type]) || (activeData[APPLE_FIELDS[type]] > 0);
+                const card = document.createElement("div"); card.className = "index-item-card";
+                card.innerHTML = `<img class="index-item-img${discovered ? '' : ' locked'}" src="${IMG_FRUITS[type]}" alt="${APPLE_NAMES[type]}"><div class="index-item-name">${discovered ? APPLE_NAMES[type] : '???'}</div>`;
+                grid.appendChild(card);
+            });
         }
 
         function renderShopGrid() {
@@ -698,8 +729,8 @@
             }
 
             let imgObj = IMAGES_CACHE['red'];
-            if (imgObj && imgObj.complete) {
-                dvdCtx.drawImage(imgObj, dvdApple.x - dvdApple.size / 2, dvdApple.y - dvdApple.size / 2, dvdApple.size, dvdApple.size);
+            if (imgObj && imgObj.complete && imgObj.naturalWidth > 0) {
+                try { dvdCtx.drawImage(imgObj, dvdApple.x - dvdApple.size / 2, dvdApple.y - dvdApple.size / 2, dvdApple.size, dvdApple.size); } catch (e) {}
             }
 
             requestAnimationFrame(updateDvdApple);
@@ -713,7 +744,7 @@
             document.getElementById("home-screen").style.display = "flex";
             document.getElementById("score").style.display = "none"; document.getElementById("timer-display").style.display = "none";
             document.getElementById("adventure-hud").style.display = "none"; document.getElementById("leave-game-btn").style.display = "none"; document.getElementById("side-buttons").style.display = "none";
-            document.getElementById("inventory-screen").style.display = "none"; document.getElementById("shop-screen").style.display = "none";
+            document.getElementById("inventory-screen").style.display = "none"; document.getElementById("shop-screen").style.display = "none"; document.getElementById("index-screen").style.display = "none";
             updateDvdApple();
         }
 
@@ -828,7 +859,7 @@
             container.appendChild(card);
             activeTimers[id] = { remaining: dur, interval: setInterval(() => {
                 activeTimers[id].remaining--;
-                if (activeTimers[id].remaining <= 0 || !gameActive) { clearInterval(activeTimers[id].interval); card.remove(); delete activeTimers[id]; if(onE) onE(); }
+                if (activeTimers[id].remaining <= 0) { clearInterval(activeTimers[id].interval); card.remove(); delete activeTimers[id]; if(onE) onE(); }
                 else { let t = document.getElementById('timer-' + id); if(t) t.innerText = activeTimers[id].remaining + "s"; }
             }, 1000)};
         }
@@ -836,6 +867,8 @@
         // ===== Panneau des spawns =====
         // Ordre des pommes, de la moins bonne à la meilleure. "Good spawn" = lava ou plus.
         const APPLE_ORDER = ['red', 'green', 'golden', 'diamond', 'candy', 'lava', 'galaxy', 'dark', 'moony', 'salhini', 'bloodmoon'];
+        const APPLE_NAMES = { red: 'Red Apple', green: 'Green Apple', golden: 'Golden Apple', diamond: 'Diamond Apple', candy: 'Candy Apple', lava: 'Lava Apple', galaxy: 'Galaxy Apple', dark: 'Dark Apple', moony: 'Moony Apple', salhini: 'Salhini Appelini', bloodmoon: 'Bloodmoon Apple' };
+        const APPLE_FIELDS = { red: 'redApples', green: 'greenApples', golden: 'goldenApples', diamond: 'diamondApples', candy: 'candyApples', lava: 'lavaApples', galaxy: 'galaxyApples', dark: 'darkApples', moony: 'moonyApples', salhini: 'salhiniApples', bloodmoon: 'bloodmoonApples' };
         const GOOD_SPAWN_MIN_RANK = APPLE_ORDER.indexOf('lava');
         const LATEST_SPAWN_LIMIT = 2;      // "Latest spawn" : les 2 dernières pommes
         const LATEST_GOOD_SPAWN_LIMIT = 1; // "Latest good spawn" : 1 seule pomme
@@ -932,6 +965,7 @@
                     else if(currentGameMode === "adventure") {
                         let activeData = accounts[currentAccountName];
                         if(activeData) {
+                            activeData.discovered = activeData.discovered || {}; activeData.discovered[a.type] = true;
                             if(a.type === 'red') activeData.redApples += appleMultiplier;
                             else if(a.type === 'green') activeData.greenApples += appleMultiplier;
                             else if(a.type === 'golden') activeData.goldenApples += appleMultiplier;
@@ -964,8 +998,10 @@
                 }
 
                 let imgObj = IMAGES_CACHE[a.type];
-                if (imgObj && imgObj.complete) { ctx.drawImage(imgObj, a.x - a.size/2, a.y - a.size/2, a.size, a.size); } 
-                else { ctx.font = "24px Nunito"; ctx.fillText("✨", a.x, a.y); }
+                if (imgObj && imgObj.complete && imgObj.naturalWidth > 0) {
+                    try { ctx.drawImage(imgObj, a.x - a.size/2, a.y - a.size/2, a.size, a.size); }
+                    catch (e) { ctx.font = "24px Nunito"; ctx.fillText("✨", a.x, a.y); }
+                } else { ctx.font = "24px Nunito"; ctx.fillText("✨", a.x, a.y); }
                 ctx.restore();
                 return true;
             });
