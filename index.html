@@ -328,6 +328,20 @@
             return sign + (Number.isInteger(v) ? v : v.toFixed(1)) + NUM_SUFFIXES[tier];
         }
 
+        // Format court des durées : 45 -> "45s", 60 -> "1min", 179 -> "2m 59s", 3600 -> "1h", 5400 -> "1h 30m"
+        function fmtTime(s) {
+            s = Math.round(Number(s)); if (!isFinite(s) || s < 0) s = 0;
+            if (s < 60) return s + "s";
+            const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+            if (h > 0) {
+                let out = h + "h";
+                if (m > 0) out += " " + m + "m";
+                if (sec > 0) out += " " + sec + "s";
+                return out;
+            }
+            return sec === 0 ? (m + "min") : (m + "m " + sec + "s");
+        }
+
         function resize() { 
             canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
             dvdCanvas.width = window.innerWidth; dvdCanvas.height = window.innerHeight;
@@ -378,7 +392,7 @@
             15: "https://static.wikia.nocookie.net/stealabr/images/0/0a/15x.png/revision/latest/scale-to-width/360?cb=20251222183115",
             20: "https://static.wikia.nocookie.net/stealabr/images/b/b7/20x_Luck.png/revision/latest/scale-to-width/360?cb=20260207171434",
             25: "https://static.wikia.nocookie.net/stealabr/images/e/ea/25x_Luck.png/revision/latest/scale-to-width/360?cb=20260317140953",
-            30: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTrFNlg9gyEgPDxziE-QhwDi6IGH7R6a417vAGMcd6ZX3a9_-tV0VbBrkUJ&s=10",
+            30: "30x luck.png",
             35: "https://static.wikia.nocookie.net/stealabr/images/9/96/35x_Luck.png/revision/latest/scale-to-width/360?cb=20260719014843" };
 
         // Configuration du catalogue de la boutique
@@ -789,8 +803,8 @@
             if (msg.name === 'customLuck') {
                 luckMultiplier = d.mult; currentLuck = ((currentGameMode === "adventure") ? 0.20 : 0.05) * luckMultiplier;
                 const luckUrl = "https://static.wikia.nocookie.net/stealabr/images/0/09/30x_Luck.webp/revision/latest/scale-to-width/360?cb=20260515140747";
-                if (LUCK_IMAGES[d.mult]) { showAdvancedMsg("FelixRouge activated " + d.mult + "x luck for " + d.time + " seconds!", 'bottom', getLuckStyle(d.mult)); }
-                else { showAdvancedMsg("<span style='color: #ff3838; font-weight: 900;'>FelixRouge</span> activated " + d.mult + "x luck for " + d.time + " seconds!", 'bottom', {color: 'white'}); }
+                if (LUCK_IMAGES[d.mult]) { showAdvancedMsg("FelixRouge activated " + d.mult + "x luck for " + fmtTime(d.time) + "!", 'bottom', getLuckStyle(d.mult)); }
+                else { showAdvancedMsg("<span style='color: #ff3838; font-weight: 900;'>FelixRouge</span> activated " + d.mult + "x luck for " + fmtTime(d.time) + "!", 'bottom', {color: 'white'}); }
                 startHudTimer('custom_luck', LUCK_IMAGES[d.mult] || luckUrl, d.time, "🍀", () => { luckMultiplier = 1; currentLuck = (currentGameMode === "adventure") ? 0.20 : 0.05; });
             }
 
@@ -855,12 +869,12 @@
         function startHudTimer(id, url, dur, fallbackEmoji, onE) {
             let container = document.getElementById('hud-events'); if (activeTimers[id]) { activeTimers[id].remaining += dur; return; }
             let card = document.createElement('div'); card.className = 'event-card'; card.id = 'event-' + id;
-            card.innerHTML = `<div class="img-container"><span>${fallbackEmoji}</span><img src="${url}" onerror="this.style.display='none'"></div><div class="event-timer" id="timer-${id}">${dur}s</div>`;
+            card.innerHTML = `<div class="img-container"><span>${fallbackEmoji}</span><img src="${url}" onerror="this.style.display='none'"></div><div class="event-timer" id="timer-${id}">${fmtTime(dur)}</div>`;
             container.appendChild(card);
             activeTimers[id] = { remaining: dur, interval: setInterval(() => {
                 activeTimers[id].remaining--;
                 if (activeTimers[id].remaining <= 0) { clearInterval(activeTimers[id].interval); card.remove(); delete activeTimers[id]; if(onE) onE(); }
-                else { let t = document.getElementById('timer-' + id); if(t) t.innerText = activeTimers[id].remaining + "s"; }
+                else { let t = document.getElementById('timer-' + id); if(t) t.innerText = fmtTime(activeTimers[id].remaining); }
             }, 1000)};
         }
 
