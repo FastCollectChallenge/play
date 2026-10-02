@@ -19,7 +19,8 @@ const FAKE = "@fastcollect.app";
 const clean = s => (s || "").trim().toLowerCase();
 const okName = s => /^[a-z0-9_]{3,16}$/.test(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const toast = m => showAdvancedMsg(m, "top", { color: "white" });
+const T = s => (window.T ? window.T(s) : s);
+const toast = m => showAdvancedMsg(T(m), "top", { color: "white" });
 
 let me = null, username = "", rev = 0, loaded = false, saving = false, dirty = false, saveTimer = null;
 let unsubs = [], pendingName = null, inbox = [], outbox = [], draft = { give: {}, ask: {} };
@@ -37,23 +38,36 @@ function addQ(d, k, n) {
 }
 function label(k) {
   if (k === "money") return "$";
-  if (k.startsWith("apple:")) return APPLE_NAMES[k.slice(6)];
-  const p = SHOP_PRODUCTS.find(p => p.id === k.slice(7)); return p ? `Luck x${p.multiplier} (${p.duration}s)` : k;
+  if (k.startsWith("apple:")) return T(APPLE_NAMES[k.slice(6)]);
+  const p = SHOP_PRODUCTS.find(p => p.id === k.slice(7)); return p ? T(`Luck x${p.multiplier}`) + ` (${p.duration}s)` : k;
 }
-const describe = m => Object.entries(m || {}).map(([k, n]) => `${fmtNum(n)}× ${esc(label(k))}`).join(", ") || "nothing";
+const describe = m => Object.entries(m || {}).map(([k, n]) => `${fmtNum(n)}× ${esc(label(k))}`).join(", ") || T("nothing");
 
 /* ---------- écran de connexion ---------- */
 const ov = document.createElement("div");
-ov.style.cssText = "position:fixed;inset:0;z-index:9000;background:#000;border:10px solid #f1c40f;box-sizing:border-box;display:flex;align-items:center;justify-content:center;color:#f1c40f;text-align:center";
-ov.innerHTML = `<div style="width:380px;display:flex;flex-direction:column;gap:12px;font-size:10px">
-  <div style="font-size:18px;line-height:1.6">Fast Collect Challenge</div>
-  <input id="au-name" class="sell-input" style="width:100%;box-sizing:border-box" placeholder="Username or email">
-  <input id="au-pw" type="password" class="sell-input" style="width:100%;box-sizing:border-box" placeholder="Password (6+ chars)">
-  <div><button class="acc-btn" id="au-login">Log in</button><button class="acc-btn" id="au-signup">Sign up</button></div>
-  <div><button class="acc-btn" id="au-google">Google</button><button class="acc-btn" id="au-github">GitHub</button><button class="acc-btn" id="au-guest">Guest</button></div>
-  <div id="au-err" style="color:#ff6b6b;font-size:8px;line-height:1.6;min-height:14px"></div></div>`;
+ov.style.cssText = "position:fixed;inset:0;z-index:9000;background:#000;border:10px solid #f1c40f;box-sizing:border-box;display:flex;align-items:center;color:#f1c40f";
+const sBtn = (id, img, txt) => `<button id="${id}" style="display:flex;align-items:center;gap:14px;width:100%;padding:10px 20px;border:0;border-radius:50px;background:#fff;color:#222;font-size:15px;font-weight:500;cursor:pointer"><img src="${img}" style="width:28px;height:28px;border-radius:50%;object-fit:contain"><span>${txt}</span></button>`;
+const inp = "width:100%;box-sizing:border-box;padding:13px 16px;border-radius:12px;border:2px solid #f1c40f;background:#111;color:#fff;font-size:15px";
+ov.innerHTML = `<div style="width:48%;padding:0 4%;box-sizing:border-box;display:flex;flex-direction:column;align-items:flex-start"><div style="font-size:90px;line-height:1;padding:16px;border:4px dotted #f1c40f;border-radius:26px;margin-bottom:30px">🕹️</div><div style="font-size:44px;line-height:1.5;text-transform:uppercase;text-shadow:4px 4px 0 #333">Fast Collect Challenge</div></div>
+<div class="rb" style="position:absolute;top:36px;right:170px;font-size:14px;color:#ddd"><span id="au-q">No account?</span> <a id="au-alt" href="#" style="color:#f1c40f;font-weight:700">Sign-up here</a></div>
+<div class="rb" style="width:52%;display:flex;justify-content:center"><div style="width:360px;display:flex;flex-direction:column;gap:14px">
+<input id="au-name" style="${inp}" placeholder="Username or email"><input id="au-pw" type="password" style="${inp}" placeholder="Password (6+ chars)">
+<button id="au-main" style="padding:13px;border:0;border-radius:50px;background:#f1c40f;color:#000;font-size:15px;font-weight:700;cursor:pointer">Log in</button>
+<div id="au-social" style="display:flex;flex-direction:column;gap:14px">${sBtn("au-google", "https://png.pngtree.com/png-vector/20230817/ourmid/pngtree-google-logo-vector-png-image_9183290.png", "Log-in with Google")}${sBtn("au-github", "https://cdn-icons-png.flaticon.com/512/25/25231.png", "Log-in with Github")}<a id="au-guest" href="#" style="color:#aaa;text-align:center;font-size:13px">Play as guest</a></div>
+<div id="au-err" style="color:#ff6b6b;font-size:13px;min-height:16px;text-align:center"></div></div></div>`;
 document.body.appendChild(ov);
+if (window.makeLangSwitch) { const w = makeLangSwitch(); w.style.cssText = "top:20px;right:30px"; ov.appendChild(w); }
 const err = e => $("au-err").textContent = (e && (e.code || e.message)) || String(e);
+window.addEventListener("unhandledrejection", e => { console.error(e.reason); err(e.reason); });
+window.addEventListener("error", e => err(e.message));
+let mode = "login";
+function setMode(m) {
+  mode = m; const su = m === "signup";
+  $("au-main").textContent = su ? "Sign up" : "Log in";
+  $("au-social").style.display = su ? "none" : "flex";
+  $("au-q").textContent = su ? "Already have an account?" : "No account?";
+  $("au-alt").textContent = su ? "Log-in here" : "Sign-up here"; err("");
+}
 
 async function pseudoAuth(signup) {
   const raw = $("au-name").value.trim(), pw = $("au-pw").value; err("");
@@ -69,11 +83,11 @@ async function pseudoAuth(signup) {
     }
   } catch (e) { pendingName = null; err(e); }
 }
-$("au-login").onclick = () => pseudoAuth(false);
-$("au-signup").onclick = () => pseudoAuth(true);
+$("au-main").onclick = () => pseudoAuth(mode === "signup");
+$("au-alt").onclick = e => { e.preventDefault(); setMode(mode === "signup" ? "login" : "signup"); };
 $("au-google").onclick = () => signInWithPopup(auth, new GoogleAuthProvider()).catch(err);
 $("au-github").onclick = () => signInWithPopup(auth, new GithubAuthProvider()).catch(err);
-$("au-guest").onclick = () => signInAnonymously(auth).catch(err);
+$("au-guest").onclick = e => { e.preventDefault(); signInAnonymously(auth).catch(err); };
 
 /* ---------- profil ---------- */
 async function ensureProfile(user) {
@@ -135,7 +149,8 @@ window.addEventListener("pagehide", saveNow);
 
 /* ---------- Trade : UI ---------- */
 const trBtn = document.createElement("button");
-trBtn.className = "side-btn no-img"; trBtn.innerHTML = '<span class="side-btn-label">Trade</span>';
+trBtn.className = "side-btn no-img"; trBtn.style.position = "relative";
+trBtn.innerHTML = '<span class="side-btn-label" style="font-size:8px">Trade</span><span id="tr-badge" style="display:none;position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;line-height:20px;border-radius:10px;background:#e84118;color:#fff;font-size:9px;text-align:center"></span>';
 $("side-buttons").appendChild(trBtn);
 const tr = document.createElement("div");
 tr.style.cssText = "position:fixed;top:5vh;left:5vw;width:90vw;height:90vh;background:rgba(0,0,0,.75);z-index:1000;border-radius:25px;border:3px solid rgba(255,255,255,.2);backdrop-filter:blur(8px);display:none;flex-direction:column;padding:30px;box-sizing:border-box;color:#fff;overflow-y:auto;font-size:10px;line-height:1.8";
@@ -171,12 +186,12 @@ function renderDraft() {
 }
 function renderTrades() {
   const card = (t, inc) => `<div style="background:rgba(255,255,255,.1);border-radius:12px;padding:12px;margin-bottom:10px">
-    <b>${esc(inc ? t.fromName : t.toName)}</b> ${inc ? "offers" : "gets"}: ${describe(t.give)}<br>${inc ? "for your" : "for their"}: ${describe(t.ask)}<br>
+    <b>${esc(inc ? t.fromName : t.toName)}</b> ${T(inc ? "offers" : "gets")}: ${describe(t.give)}<br>${T("in return")}: ${describe(t.ask)}<br>
     ${inc ? `<button class="acc-btn" data-a="accept" data-id="${t.id}">Accept</button><button class="acc-btn danger" data-a="decline" data-id="${t.id}">Decline</button>`
           : `<button class="acc-btn danger" data-a="cancel" data-id="${t.id}">Cancel</button>`}</div>`;
   $("tr-in").innerHTML = inbox.map(t => card(t, true)).join("") || "-";
   $("tr-out").innerHTML = outbox.map(t => card(t, false)).join("") || "-";
-  trBtn.firstChild.textContent = inbox.length ? "Trade!" : "Trade";
+  $("tr-badge").style.display = inbox.length ? "block" : "none"; $("tr-badge").textContent = inbox.length;
 }
 tr.addEventListener("click", e => {
   const b = e.target.closest("[data-a]"); if (!b) return;
@@ -252,4 +267,9 @@ onAuthStateChanged(auth, async user => {
   unsubs.push(onSnapshot(query(collection(db, "trades"), where("from", "==", me), where("status", "==", "pending")), s => {
     outbox = s.docs.map(d => ({ id: d.id, ...d.data() })); renderTrades();
   }));
+});
+
+window.addEventListener("langchange", () => {
+  tr.querySelectorAll("select").forEach(el => { const v = el.value; el.innerHTML = opts(); el.value = v; });
+  renderDraft(); renderTrades();
 });
