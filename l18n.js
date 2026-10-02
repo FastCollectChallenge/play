@@ -63,7 +63,7 @@
     "Username or email": "Nom d'utilisateur ou e-mail", "Password (6+ chars)": "Mot de passe (6 caractères min.)",
     "Invalid username": "Pseudo invalide", "Username already taken": "Pseudo déjà pris",
     "Choose a username (3-16: a-z, 0-9, _):": "Choisis un pseudo (3-16 : a-z, 0-9, _) :",
-    "Choose your username and profile picture": "Choisis ton pseudo et ta photo de profil", "Edit your profile picture": "Modifier ta photo de profil",
+    "Choose your username and profile picture": "Choisis ton pseudo et ta photo de profil", "Edit your profile picture": "Modifier ta photo de profil", "Choose your profile picture": "Choisis ta photo de profil",
     "Username (3-16: a-z, 0-9, _)": "Pseudo (3-16 : a-z, 0-9, _)", "Profile picture URL (https://...)": "URL de la photo de profil (https://...)",
     "Continue": "Continuer", "Save": "Enregistrer", "Log out": "Se déconnecter", "Close": "Fermer", "Import my local progress": "Importer ma progression locale",
     "Invalid picture URL (must start with https://)": "URL de photo invalide (doit commencer par https://)"
