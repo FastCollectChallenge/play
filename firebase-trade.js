@@ -120,14 +120,14 @@ function showPrev() {
   im.src = /^https:\/\/\S+$/i.test(u) ? u : AV0;
 }
 $("pf-photo").oninput = showPrev;
-function openProfilePage({ edit, name, photo, loc, submit, cancel }) {
-  $("pf-title").textContent = edit ? "Edit your profile picture" : "Choose your username and profile picture";
+function openProfilePage({ edit, noName, name, photo, loc, submit, cancel }) {
+  $("pf-title").textContent = edit ? "Edit your profile picture" : noName ? "Choose your profile picture" : "Choose your username and profile picture";
   $("pf-ok").textContent = edit ? "Save" : "Continue";
-  $("pf-name").value = name || ""; $("pf-name").disabled = !!edit; $("pf-photo").value = photo || ""; showPrev();
+  $("pf-name").value = name || ""; $("pf-name").disabled = !!edit; $("pf-name").style.display = noName ? "none" : ""; $("pf-photo").value = photo || ""; showPrev();
   $("pf-imp-row").style.display = loc ? "block" : "none"; if (loc) $("pf-imp-name").textContent = `(${loc.k})`;
   $("pf-close").style.display = edit ? "block" : "none"; pferr(""); pf.style.display = "flex";
   $("pf-ok").onclick = async () => {
-    const n = clean($("pf-name").value), p = $("pf-photo").value.trim();
+    const n = noName ? name : clean($("pf-name").value), p = $("pf-photo").value.trim();
     if (!okName(n)) return pferr("Invalid username");
     if (p && !/^https:\/\/\S+$/i.test(p)) return pferr("Invalid picture URL (must start with https://)");
     try { await submit(n, p, $("pf-imp").checked); pf.style.display = "none"; }
@@ -158,19 +158,18 @@ const suggest = u => clean((u.displayName || u.email || "").split("@")[0]).repla
 async function ensureProfile(user) {
   if ((await getDoc(doc(db, "users", user.uid))).exists()) return true;
   const loc = readLocal(), chosen = pendingName; pendingName = null;
-  if (user.isAnonymous || chosen) { // invité ou pseudo+mot de passe : pas de page de choix
+  if (user.isAnonymous) { // invité : pas de page, pseudo guestXXXX
     let init = fresh();
     if (loc && confirm(`Import your local progress from "${loc.k}"?`)) init = normalize(loc.d);
     for (let i = 0; i < 5; i++) {
-      const name = chosen || "guest" + Math.floor(1000 + Math.random() * 9000);
-      try { await claim(user, name, "", init); return true; }
-      catch (e) { if (e.message !== "taken") throw e; if (chosen) { err("Username already taken"); break; } }
+      try { await claim(user, "guest" + Math.floor(1000 + Math.random() * 9000), "", init); return true; }
+      catch (e) { if (e.message !== "taken") throw e; }
     }
     await signOut(auth); return false;
   }
-  // Google / GitHub / e-mail : page « Choose your username and profile picture »
+  // Toute création de compte : page de profil (pseudo + mot de passe : photo seule, sans champ pseudo)
   return new Promise(res => openProfilePage({
-    edit: false, name: suggest(user), photo: user.photoURL || "", loc,
+    edit: false, noName: !!chosen, name: chosen || suggest(user), photo: user.photoURL || "", loc,
     submit: async (n, p, imp) => { await claim(user, n, p, imp && loc ? normalize(loc.d) : fresh()); res(true); },
     cancel: async () => { await signOut(auth); res(false); }
   }));
