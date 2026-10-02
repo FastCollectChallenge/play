@@ -235,12 +235,14 @@ onAuthStateChanged(auth, async user => {
     if (me) { me = null; try { leaveGame(); } catch (e) {} }
     ov.style.display = "flex"; return;
   }
-  if (!(await ensureProfile(user))) return;
+  try { if (!(await ensureProfile(user))) return; } catch (e) { err(e); ov.style.display = "flex"; return; }
   me = user.uid;
   unsubs.push(onSnapshot(doc(db, "users", me), s => {
     if (!s.exists()) return; const v = s.data();
-    if (!loaded || (!saving && v.rev > rev)) { applyRemote(v); loaded = true; ov.style.display = "none"; }
-  }));
+    if (!loaded || (!saving && v.rev > rev)) {
+      try { applyRemote(v); loaded = true; ov.style.display = "none"; } catch (e) { err(e); console.error(e); }
+    }
+  }, e => { err(e); console.error(e); }));
   let first = true;
   unsubs.push(onSnapshot(query(collection(db, "trades"), where("to", "==", me), where("status", "==", "pending")), s => {
     inbox = s.docs.map(d => ({ id: d.id, ...d.data() }));
