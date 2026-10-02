@@ -85,38 +85,99 @@ async function pseudoAuth(signup) {
 }
 $("au-main").onclick = () => pseudoAuth(mode === "signup");
 $("au-alt").onclick = e => { e.preventDefault(); setMode(mode === "signup" ? "login" : "signup"); };
-$("au-google").onclick = () => signInWithPopup(auth, new GoogleAuthProvider()).catch(err);
-$("au-github").onclick = () => signInWithPopup(auth, new GithubAuthProvider()).catch(err);
+let popupBusy = false;
+const social = Provider => {
+  if (popupBusy) return;
+  popupBusy = true; err("");
+  signInWithPopup(auth, new Provider())
+    .catch(e => err(e.code === "auth/popup-blocked" ? "Popup blocked: allow popups for this site and try again" : e))
+    .finally(() => { popupBusy = false; });
+};
+$("au-google").onclick = () => social(GoogleAuthProvider);
+$("au-github").onclick = () => social(GithubAuthProvider);
 $("au-guest").onclick = e => { e.preventDefault(); signInAnonymously(auth).catch(err); };
 
 /* ---------- profil ---------- */
+const AV0 = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><rect width='10' height='10' fill='%23f1c40f'/><text x='1.3' y='8' font-size='7.5'>👤</text></svg>";
+let myPhoto = "";
+const pf = document.createElement("div");
+pf.style.cssText = "position:fixed;inset:0;z-index:9100;background:#000;border:10px solid #f1c40f;box-sizing:border-box;display:none;align-items:center;color:#f1c40f";
+pf.innerHTML = `<div style="width:48%;padding:0 4%;box-sizing:border-box;display:flex;flex-direction:column;align-items:flex-start"><div style="font-size:90px;line-height:1;padding:16px;border:4px dotted #f1c40f;border-radius:26px;margin-bottom:30px">🕹️</div><div style="font-size:44px;line-height:1.5;text-transform:uppercase;text-shadow:4px 4px 0 #333">Fast Collect Challenge</div></div>
+<div class="rb" style="width:52%;display:flex;justify-content:center"><div style="width:380px;display:flex;flex-direction:column;gap:14px">
+<div id="pf-title" style="font-size:22px;font-weight:700;color:#fff;text-align:center;line-height:1.3"></div>
+<div style="display:flex;justify-content:center"><img id="pf-prev" style="width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid #f1c40f;background:#222"></div>
+<input id="pf-name" style="${inp}" placeholder="Username (3-16: a-z, 0-9, _)"><input id="pf-photo" style="${inp}" placeholder="Profile picture URL (https://...)">
+<label id="pf-imp-row" style="display:none;color:#ddd;font-size:13px"><input type="checkbox" id="pf-imp" checked> <span>Import my local progress</span> <b id="pf-imp-name"></b></label>
+<button id="pf-ok" style="padding:13px;border:0;border-radius:50px;background:#f1c40f;color:#000;font-size:15px;font-weight:700;cursor:pointer"></button>
+<a id="pf-close" href="#" style="color:#ddd;text-align:center;font-size:13px">Close</a><a id="pf-out" href="#" style="color:#aaa;text-align:center;font-size:13px">Log out</a>
+<div id="pf-err" style="color:#ff6b6b;font-size:13px;min-height:16px;text-align:center"></div></div></div>`;
+document.body.appendChild(pf);
+if (window.makeLangSwitch) { const w = makeLangSwitch(); w.style.cssText = "top:20px;right:30px"; pf.appendChild(w); }
+const pferr = m => $("pf-err").textContent = m ? (m.code || m.message || String(m)) : "";
+function showPrev() {
+  const im = $("pf-prev"), u = $("pf-photo").value.trim();
+  im.onerror = () => { im.onerror = null; im.src = AV0; };
+  im.src = /^https:\/\/\S+$/i.test(u) ? u : AV0;
+}
+$("pf-photo").oninput = showPrev;
+function openProfilePage({ edit, name, photo, loc, submit, cancel }) {
+  $("pf-title").textContent = edit ? "Edit your profile picture" : "Choose your username and profile picture";
+  $("pf-ok").textContent = edit ? "Save" : "Continue";
+  $("pf-name").value = name || ""; $("pf-name").disabled = !!edit; $("pf-photo").value = photo || ""; showPrev();
+  $("pf-imp-row").style.display = loc ? "block" : "none"; if (loc) $("pf-imp-name").textContent = `(${loc.k})`;
+  $("pf-close").style.display = edit ? "block" : "none"; pferr(""); pf.style.display = "flex";
+  $("pf-ok").onclick = async () => {
+    const n = clean($("pf-name").value), p = $("pf-photo").value.trim();
+    if (!okName(n)) return pferr("Invalid username");
+    if (p && !/^https:\/\/\S+$/i.test(p)) return pferr("Invalid picture URL (must start with https://)");
+    try { await submit(n, p, $("pf-imp").checked); pf.style.display = "none"; }
+    catch (e) { pferr(e.message === "taken" ? "Username already taken" : e); }
+  };
+  $("pf-close").onclick = e => { e.preventDefault(); pf.style.display = "none"; };
+  $("pf-out").onclick = async e => { e.preventDefault(); await cancel(); pf.style.display = "none"; };
+}
+function setAvatar(url) {
+  const b = $("account-settings-btn"); if (!b) return;
+  const fb = '<div style="width:100%;height:100%;border-radius:50%;background:#f1c40f;color:#000;display:flex;align-items:center;justify-content:center;font-size:calc(26*var(--u))">👤</div>';
+  b.innerHTML = url ? '<img style="width:100%;height:100%;border-radius:50%;object-fit:cover;border:calc(3*var(--u)) solid #f1c40f;box-sizing:border-box;background:#222">' : fb;
+  if (url) { const im = b.firstChild; im.onerror = () => { b.innerHTML = fb; }; im.src = url; }
+}
+
+const readLocal = () => {
+  try { const a = JSON.parse(localStorage.getItem("fastCollect_accounts") || "null"), k = localStorage.getItem("fastCollect_activeAccount"); return a && a[k] ? { k, d: a[k] } : null; }
+  catch (e) { return null; }
+};
+const claim = (user, name, photo, init) => runTransaction(db, async t => {
+  const u = doc(db, "usernames", name);
+  if ((await t.get(u)).exists()) throw new Error("taken");
+  t.set(u, { uid: user.uid });
+  t.set(doc(db, "users", user.uid), { username: name, photo, rev: 1, data: init });
+});
+const suggest = u => clean((u.displayName || u.email || "").split("@")[0]).replace(/[^a-z0-9_]/g, "_").slice(0, 16);
+
 async function ensureProfile(user) {
   if ((await getDoc(doc(db, "users", user.uid))).exists()) return true;
-  let init = fresh();
-  try {
-    const a = JSON.parse(localStorage.getItem("fastCollect_accounts") || "null"), k = localStorage.getItem("fastCollect_activeAccount");
-    if (a && a[k] && confirm(`Import your local progress from "${k}"?`)) init = normalize(a[k]);
-  } catch (e) {}
-  const ask = () => user.isAnonymous ? "guest" + Math.floor(1000 + Math.random() * 9000) : clean(prompt("Choose a username (3-16: a-z, 0-9, _):"));
-  let name = pendingName || ask(); pendingName = null;
-  for (let i = 0; i < 5; i++) {
-    if (!name) { await signOut(auth); return false; }
-    if (!okName(name)) { alert("Invalid username"); name = ask(); continue; }
-    try {
-      await runTransaction(db, async t => {
-        const u = doc(db, "usernames", name);
-        if ((await t.get(u)).exists()) throw new Error("taken");
-        t.set(u, { uid: user.uid });
-        t.set(doc(db, "users", user.uid), { username: name, rev: 1, data: init });
-      });
-      return true;
-    } catch (e) { if (e.message !== "taken") { err(e); await signOut(auth); return false; } if (!user.isAnonymous) alert("Username already taken"); name = ask(); }
+  const loc = readLocal(), chosen = pendingName; pendingName = null;
+  if (user.isAnonymous || chosen) { // invité ou pseudo+mot de passe : pas de page de choix
+    let init = fresh();
+    if (loc && confirm(`Import your local progress from "${loc.k}"?`)) init = normalize(loc.d);
+    for (let i = 0; i < 5; i++) {
+      const name = chosen || "guest" + Math.floor(1000 + Math.random() * 9000);
+      try { await claim(user, name, "", init); return true; }
+      catch (e) { if (e.message !== "taken") throw e; if (chosen) { err("Username already taken"); break; } }
+    }
+    await signOut(auth); return false;
   }
-  await signOut(auth); return false;
+  // Google / GitHub / e-mail : page « Choose your username and profile picture »
+  return new Promise(res => openProfilePage({
+    edit: false, name: suggest(user), photo: user.photoURL || "", loc,
+    submit: async (n, p, imp) => { await claim(user, n, p, imp && loc ? normalize(loc.d) : fresh()); res(true); },
+    cancel: async () => { await signOut(auth); res(false); }
+  }));
 }
 
 function applyRemote(v) {
-  rev = v.rev; username = v.username;
+  rev = v.rev; username = v.username; myPhoto = v.photo || ""; setAvatar(myPhoto);
   accounts = { [username]: normalize(v.data) }; currentAccountName = username;
   updateAdventureHUD();
 }
@@ -143,7 +204,11 @@ async function saveNow() {
 window.saveAllAccounts = function () { updateAdventureHUD(); if (!me) return; dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 2000); };
 const _leave = window.leaveGame;
 window.leaveGame = function () { _leave(); saveNow(); };
-window.openAccountModal = () => showCustomConfirm(`Logged in as ${username}. Log out?`, async ok => { if (ok) { await saveNow(); await signOut(auth); } });
+window.openAccountModal = () => me && openProfilePage({
+  edit: true, name: username, photo: myPhoto,
+  submit: async (n, p) => { await updateDoc(doc(db, "users", me), { photo: p }); myPhoto = p; setAvatar(p); },
+  cancel: async () => { await saveNow(); await signOut(auth); }
+});
 document.addEventListener("visibilitychange", () => { if (document.hidden) saveNow(); });
 window.addEventListener("pagehide", saveNow);
 
