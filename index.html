@@ -456,12 +456,28 @@
         function openAccountModal() { document.getElementById("account-modal").style.display = "flex"; }
         function closeAccountModal() { document.getElementById("account-modal").style.display = "none"; }
 
+        // Dernière valeur valide connue par compte : si une valeur devient NaN, on la restaure au lieu de la mettre à 0
+        let lastGood = {};
+        function sanitizeAccount(acc, name) {
+            if (!acc || typeof acc !== 'object') return acc;
+            const fields = ['money','redApples','greenApples'];
+            Object.keys(acc).forEach(k => { if (/Apples$/.test(k) && !fields.includes(k)) fields.push(k); });
+            const good = name ? (lastGood[name] = lastGood[name] || {}) : {};
+            fields.forEach(f => {
+                if (Number.isFinite(acc[f])) good[f] = acc[f];
+                else acc[f] = Number.isFinite(good[f]) ? good[f] : 0;
+            });
+            return acc;
+        }
+
         function loadAllAccounts() {
             const savedAccounts = localStorage.getItem("fastCollect_accounts");
+            try { lastGood = JSON.parse(localStorage.getItem("fastCollect_lastGood") || "{}") || {}; } catch (e) { lastGood = {}; }
             const savedActive = localStorage.getItem("fastCollect_activeAccount");
             if (savedAccounts) {
                 let parsed = JSON.parse(savedAccounts);
                 Object.keys(parsed).forEach(k => {
+                    sanitizeAccount(parsed[k], k);
                     if (parsed[k].goldenApples === undefined) parsed[k].goldenApples = 0;
                     if (parsed[k].diamondApples === undefined) parsed[k].diamondApples = 0;
                     if (parsed[k].candyApples === undefined) parsed[k].candyApples = 0;
@@ -482,6 +498,8 @@
         }
 
         function saveAllAccounts() {
+            Object.keys(accounts).forEach(n => sanitizeAccount(accounts[n], n));
+            try { localStorage.setItem("fastCollect_lastGood", JSON.stringify(lastGood)); } catch (e) {}
             localStorage.setItem("fastCollect_accounts", JSON.stringify(accounts));
             localStorage.setItem("fastCollect_activeAccount", currentAccountName);
             updateAdventureHUD();
@@ -519,7 +537,7 @@
                 const decodedStr = decodeURIComponent(escape(atob(token.trim()))); const parsed = JSON.parse(decodedStr);
                 if(parsed.name && parsed.data) {
                     if(accounts[parsed.name]) { if(!confirm(`An account named "${parsed.name}" already exists here. Overwrite it?`)) return; }
-                    accounts[parsed.name] = parsed.data; currentAccountName = parsed.name; saveAllAccounts(); renderAccountSelect(); alert("Account imported successfully!");
+                    accounts[parsed.name] = sanitizeAccount(parsed.data, parsed.name); currentAccountName = parsed.name; saveAllAccounts(); renderAccountSelect(); alert("Account imported successfully!");
                 }
             } catch(e) { alert("Error reading key. Make sure you copied the full string."); }
         }
@@ -533,6 +551,7 @@
 
         function updateAdventureHUD() {
             const activeData = accounts[currentAccountName] || { money: 0, redApples: 0, greenApples: 0, goldenApples: 0, diamondApples: 0, candyApples: 0, lavaApples: 0, galaxyApples: 0, darkApples: 0, salhiniApples: 0, bloodmoonApples: 0, moonyApples: 0, potions: {} };
+            sanitizeAccount(activeData, currentAccountName);
             document.getElementById("inv-money-counter").innerText = fmtNum(activeData.money);
             document.getElementById("shop-money-counter").innerText = fmtNum(activeData.money);
             
@@ -734,6 +753,7 @@
                 let parsedInt = parseInt(inputVal); if (isNaN(parsedInt) || parsedInt <= 0) { alert("Please enter a valid amount or type 'Max'."); return; }
                 amountToSell = parsedInt > currentStock ? currentStock : parsedInt;
             }
+            if (!Number.isFinite(amountToSell) || !Number.isFinite(unitPrice)) { alert("Invalid amount."); closeSellModal(); return; }
             if (amountToSell <= 0) { alert("You don't have any apples of this kind to sell!"); closeSellModal(); return; }
 
             if (activeSellType === 'red') activeData.redApples -= amountToSell;
