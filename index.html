@@ -1,4 +1,4 @@
-<!DOCTYPE html> // By FelixRouge DONT YOU DARE INSPECT AND TRY TO CHEAT YOU CANT LOL
+<!DOCTYPE html> 
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -308,8 +308,14 @@
     <canvas id="gameCanvas"></canvas>
 
     <script>
-        const ably = new Ably.Realtime('bZFMkw.u1oLTg:xhXyW5SeGGYAmDyoGjYDfkbodtDNkZcEMXw11__DDxM');
+        const MY_CLIENT_ID = 'p_' + Math.random().toString(36).slice(2, 10);
+        const ably = new Ably.Realtime({ key: 'bZFMkw.u1oLTg:xhXyW5SeGGYAmDyoGjYDfkbodtDNkZcEMXw11__DDxM', clientId: MY_CLIENT_ID });
         const channel = ably.channels.get('admin-commands');
+        // Presence : l'admin voit qui est connecté et dans quel mode ('menu' | 'arcade' | 'adventure')
+        function setMode(mode) {
+            try { channel.presence.update({ mode: mode }, function(err){ if (err) console.error('[Fast Collect] presence failed:', err.message || err); else console.log('[Fast Collect] presence OK as', MY_CLIENT_ID, '-', mode); }); } catch(e) { console.error(e); }
+        }
+        setMode('menu');
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
         const dvdCanvas = document.getElementById("dvdCanvas");
@@ -374,6 +380,21 @@
             bloodmoon: "https://static.planetminecraft.com/files/image/minecraft/data-pack/2020/297/13612020-redstone-apple_xl.webp",
             moony: "https://aether.wiki.gg/images/Modern_White_Apple.png?e320e3"
         };
+
+        Object.assign(IMG_FRUITS, {
+            cheezy: "Cheezy%20Apple.png", sand: "Sand%20Apple.png", amethyst: "Amethyst%20Apple.png",
+            sapphire: "sapphire.png", canneloni: "Canneloni%20Apple.png", rainbow: "Rainbow%20Apple.png", ice: "Ice%20Apple.png"
+        });
+        const NEW_APPLES = {
+            cheezy:    { field:'cheezyApples',    name:'Cheezy Apple',    price:5000,      chance:0.0004,     color:'#FFC93C', msg:'A Cheezy Apple spawned in your server!' },
+            sand:      { field:'sandApples',      name:'Sand Apple',      price:50000,     chance:0.0001,     color:'#E6C98A', msg:'A Sand Apple spawned in your server!' },
+            amethyst:  { field:'amethystApples',  name:'Amethyst Apple',  price:250000,    chance:0.00002,    color:'#9B59B6', msg:'An Amethyst Apple spawned in your server!' },
+            ice:       { field:'iceApples',       name:'Ice Apple',       price:600000,    chance:0.0000085,  color:'#A5F2F3', msg:'An Ice Apple spawned in your server!' },
+            sapphire:  { field:'sapphireApples',  name:'Sapphire Apple',  price:1250000,   chance:0.000004,   color:'#0F52BA', msg:'A Sapphire Apple spawned in your server!' },
+            rainbow:   { field:'rainbowApples',   name:'Rainbow Apple',   price:3000000,   chance:0.0000017,  color:'#ff66cc', msg:'A Rainbow Apple spawned in your server!', rainbow:true },
+            canneloni: { field:'canneloniApples',name:'Apple Canneloni', price:250000000, chance:0.00000002, color:'#E4572E', msg:'An Apple Canneloni spawned in your server!' }
+        };
+        function newAppleMsg(id) { const n = NEW_APPLES[id]; showAdvancedMsg(n.msg, 'bottom', n.rainbow ? {isRainbow:true} : {color:n.color}); }
 
         const IMG_POTIONS = {
             x2: "https://static.wikia.nocookie.net/minecraft_gamepedia/images/7/72/Potion_of_Luck_JE3.png/revision/latest?cb=20230303160252",
@@ -451,6 +472,7 @@
                     if (parsed[k].bloodmoonApples === undefined) parsed[k].bloodmoonApples = 0;
                     if (parsed[k].moonyApples === undefined) parsed[k].moonyApples = 0;
                     if (parsed[k].potions === undefined) parsed[k].potions = {};
+                    Object.values(NEW_APPLES).forEach(n => { if (parsed[k][n.field] === undefined) parsed[k][n.field] = 0; });
                 });
                 accounts = parsed;
             }
@@ -530,7 +552,8 @@
                     { id: 'dark', content: IMG_FRUITS.dark, count: activeData.darkApples || 0 },
                     { id: 'moony', content: IMG_FRUITS.moony, count: activeData.moonyApples || 0 },
                     { id: 'salhini', content: IMG_FRUITS.salhini, count: activeData.salhiniApples || 0 },
-                    { id: 'bloodmoon', content: IMG_FRUITS.bloodmoon, count: activeData.bloodmoonApples || 0 }
+                    { id: 'bloodmoon', content: IMG_FRUITS.bloodmoon, count: activeData.bloodmoonApples || 0 },
+                    ...Object.keys(NEW_APPLES).map(id => ({ id, content: IMG_FRUITS[id], count: activeData[NEW_APPLES[id].field] || 0 }))
                 ];
                 itemTypes.forEach(item => {
                     if (item.count > 0) {
@@ -683,6 +706,7 @@
             else if (type === 'salhini') title.innerText = "Sell Salhini Appelini (+676.8K$)";
             else if (type === 'bloodmoon') title.innerText = "Sell Bloodmoon Apple (+6.7M$)";
             else if (type === 'moony') title.innerText = "Sell Moony Apple (+50K$)";
+            if (NEW_APPLES[type]) title.innerText = `Sell ${NEW_APPLES[type].name} (+${fmtNum(NEW_APPLES[type].price)}$)`;
             document.getElementById("sell-modal").style.display = "flex";
         }
         function closeSellModal() { document.getElementById("sell-modal").style.display = "none"; activeSellType = null; }
@@ -703,6 +727,7 @@
             else if (activeSellType === 'bloodmoon') { currentStock = activeData.bloodmoonApples || 0; unitPrice = 6666666; }
             else if (activeSellType === 'moony') { currentStock = activeData.moonyApples || 0; unitPrice = 50000; }
 
+            if (NEW_APPLES[activeSellType]) { currentStock = activeData[NEW_APPLES[activeSellType].field] || 0; unitPrice = NEW_APPLES[activeSellType].price; }
             let amountToSell = 0;
             if (inputVal.toLowerCase() === 'max') { amountToSell = currentStock; } 
             else {
@@ -723,6 +748,7 @@
             else if (activeSellType === 'bloodmoon') activeData.bloodmoonApples -= amountToSell;
             else if (activeSellType === 'moony') activeData.moonyApples -= amountToSell;
 
+            if (NEW_APPLES[activeSellType]) activeData[NEW_APPLES[activeSellType].field] -= amountToSell;
             activeData.money += (amountToSell * unitPrice); saveAllAccounts(); closeSellModal(); updateAdventureHUD(); 
         }
 
@@ -753,6 +779,7 @@
         resize(); updateDvdApple(); loadAllAccounts();
 
         function leaveGame() {
+            setMode('menu');
             gameActive = false; if (gameSpawnInterval) { clearInterval(gameSpawnInterval); gameSpawnInterval = null; }
             apples = []; ball.speed = ball.baseSpeed; luckMultiplier = 1; setSpawnPanel(false); if (currentGameMode === "adventure") { saveAllAccounts(); }
             document.getElementById("home-screen").style.display = "flex";
@@ -763,7 +790,7 @@
         }
 
         function startGame() {
-            currentGameMode = "arcade"; luckMultiplier = 1; currentLuck = 0.05; setSpawnPanel(false); 
+            currentGameMode = "arcade"; luckMultiplier = 1; currentLuck = 0.05; setSpawnPanel(false); setMode('arcade'); 
             document.getElementById("home-screen").style.display = "none";
             document.getElementById("score").style.display = "block"; document.getElementById("timer-display").style.display = "block";
             document.getElementById("adventure-hud").style.display = "none"; document.getElementById("leave-game-btn").style.display = "flex"; document.getElementById("side-buttons").style.display = "none";
@@ -789,6 +816,7 @@
             update(); 
             if (gameSpawnInterval) clearInterval(gameSpawnInterval);
             gameSpawnInterval = setInterval(() => { if(gameActive && currentGameMode === "adventure") spawnApple(false, 1); }, 1000);
+            setMode('adventure');
         }
 
         channel.unsubscribe();
@@ -809,12 +837,14 @@
             }
 
             if (msg.name === 'customSpawn' && currentGameMode === "adventure") {
-                const appleType = d.type.toLowerCase(); spawnAppleAdmin(appleType, d.count);
+                if (Array.isArray(d.targets) && !d.targets.includes(MY_CLIENT_ID)) return;
+                const appleType = d.type.toLowerCase(); spawnAppleAdmin(appleType, d.targets ? 1 : (d.count || 1));
                 if (appleType === 'lava') { showAdvancedMsg("<span style='color: #ff3838; font-weight: 900;'>FelixRouge</span> spawned a Lava Apple in your server!", 'bottom', {color: '#FF4D00'}); } 
                 else if (appleType === 'galaxy') { showAdvancedMsg("<span style='color: #ff3838; font-weight: 900;'>FelixRouge</span> spawned a Galaxy Apple in your server!", 'bottom', {isGalaxy: true}); } 
                 else if (appleType === 'dark') { showAdvancedMsg("<span style='color: #ff3838; font-weight: 900;'>FelixRouge</span> spawned a Dark Apple in your server!", 'bottom', {color: 'black'}); }
                 else if (appleType === 'salhini') { showAdvancedMsg("A Salhini Appelini spawned in your server!", 'bottom', {color: '#F5D7C3'}); }
                 else if (appleType === 'bloodmoon') { showAdvancedMsg("A Bloodmoon apple spawned in your server!", 'bottom', {color: '#8b0000'}); }
+                else if (NEW_APPLES[appleType]) { newAppleMsg(appleType); }
                 else if (appleType === 'moony') { showAdvancedMsg("A Moony Apple spawned in your server!", 'bottom', {stops: ['#BFC1C2', '#F8F8F8', '#9EA0A2', '#ECECEC']}); }
             }
 
@@ -880,9 +910,10 @@
 
         // ===== Panneau des spawns =====
         // Ordre des pommes, de la moins bonne à la meilleure. "Good spawn" = lava ou plus.
-        const APPLE_ORDER = ['red', 'green', 'golden', 'diamond', 'candy', 'lava', 'galaxy', 'dark', 'moony', 'salhini', 'bloodmoon'];
+        const APPLE_ORDER = ['red', 'green', 'golden', 'diamond', 'candy', 'lava', 'galaxy', 'dark', 'cheezy', 'moony', 'sand', 'amethyst', 'ice', 'salhini', 'sapphire', 'rainbow', 'bloodmoon', 'canneloni'];
         const APPLE_NAMES = { red: 'Red Apple', green: 'Green Apple', golden: 'Golden Apple', diamond: 'Diamond Apple', candy: 'Candy Apple', lava: 'Lava Apple', galaxy: 'Galaxy Apple', dark: 'Dark Apple', moony: 'Moony Apple', salhini: 'Salhini Appelini', bloodmoon: 'Bloodmoon Apple' };
         const APPLE_FIELDS = { red: 'redApples', green: 'greenApples', golden: 'goldenApples', diamond: 'diamondApples', candy: 'candyApples', lava: 'lavaApples', galaxy: 'galaxyApples', dark: 'darkApples', moony: 'moonyApples', salhini: 'salhiniApples', bloodmoon: 'bloodmoonApples' };
+        Object.keys(NEW_APPLES).forEach(k => { APPLE_NAMES[k] = NEW_APPLES[k].name; APPLE_FIELDS[k] = NEW_APPLES[k].field; });
         const GOOD_SPAWN_MIN_RANK = APPLE_ORDER.indexOf('lava');
         const LATEST_SPAWN_LIMIT = 2;      // "Latest spawn" : les 2 dernières pommes
         const LATEST_GOOD_SPAWN_LIMIT = 1; // "Latest good spawn" : 1 seule pomme
@@ -929,10 +960,13 @@
                     apples.push({ x: Math.random() * (canvas.width - 60), y: Math.random() * (canvas.height - 60), size: 25, type: isOp ? 'green' : 'red' });
                 } 
                 else if (currentGameMode === "adventure") {
+                    let newType = null;
+                    if (!fG) { for (const id of Object.keys(NEW_APPLES)) { if (Math.random() < NEW_APPLES[id].chance * luckMultiplier) { newType = id; break; } } }
+                    if (newType) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: newType }); newAppleMsg(newType); recordSpawn(newType); continue; }
                     let rng = Math.random();
                     let bloodmoonChance = 0.00000666 * luckMultiplier;
                     let darkChance = 0.001 * luckMultiplier;
-                    let salhiniChance = 0.00001 * luckMultiplier;
+                    let salhiniChance = 0; // Salhini : admin only
                     let moonyChance = 0.0001 * luckMultiplier;
                     let galaxyChance = 0.003 * luckMultiplier;
                     let lavaChance = 0.005 * luckMultiplier;
@@ -991,6 +1025,7 @@
                             else if(a.type === 'salhini') activeData.salhiniApples = (activeData.salhiniApples || 0) + appleMultiplier;
                             else if(a.type === 'bloodmoon') activeData.bloodmoonApples = (activeData.bloodmoonApples || 0) + appleMultiplier;
                             else if(a.type === 'moony') activeData.moonyApples = (activeData.moonyApples || 0) + appleMultiplier;
+                            else if(NEW_APPLES[a.type]) activeData[NEW_APPLES[a.type].field] = (activeData[NEW_APPLES[a.type].field] || 0) + appleMultiplier;
                             saveAllAccounts();
                         }
                     }
@@ -1011,6 +1046,10 @@
                     ctx.shadowColor = "rgba(255, 255, 255, 0.85)";
                 }
 
+                if (NEW_APPLES[a.type]) {
+                    ctx.shadowBlur = 22;
+                    ctx.shadowColor = a.type === 'rainbow' ? `hsl(${(Date.now() / 5) % 360},100%,60%)` : NEW_APPLES[a.type].color;
+                }
                 let imgObj = IMAGES_CACHE[a.type];
                 if (imgObj && imgObj.complete && imgObj.naturalWidth > 0) {
                     try { ctx.drawImage(imgObj, a.x - a.size/2, a.y - a.size/2, a.size, a.size); }
@@ -1033,6 +1072,8 @@
 
         window.addEventListener("mousemove", (e) => { player.x = e.clientX; player.y = e.clientY; });
     </script>
+<script src="i18n.js"></script>
+<script type="module" src="firebase-trade.js"></script>
 </body>
 </html>
 </body>
