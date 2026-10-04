@@ -2,16 +2,14 @@
 (function () {
   let lang = localStorage.getItem("fc_lang") || "en";
   const $ = id => document.getElementById(id);
-  const L = document.createElement("link"); L.rel = "stylesheet";
-  L.href = "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"; document.head.appendChild(L);
   const S = document.createElement("style");
-  S.textContent = `.rb,.rb *{font-family:'Roboto',sans-serif!important}
-  .lang-sw{display:flex;position:absolute;z-index:20;--ls:55px}
+  S.textContent = `.rb,.rb *,.admin-msg,.admin-msg *{font-family:'Nunito',sans-serif!important;font-weight:700!important}
+  .lang-sw{display:flex;gap:3px;padding:4px;border:2px dotted #f1c40f;border-radius:12px;background:rgba(0,0,0,.35);position:absolute;z-index:20;--ls:30px}
   .lang-btn{width:var(--ls);height:var(--ls);padding:0;border:2px solid #f1c40f;background:#000;cursor:pointer;overflow:hidden;position:relative;display:block}
-  .lang-btn:first-child{border-radius:14px 0 0 14px;border-right-width:1px}.lang-btn:last-child{border-radius:0 14px 14px 0;border-left-width:1px}
+  .lang-btn{border-radius:8px}
   .lang-btn img{width:100%;height:100%;object-fit:fill;display:block}
-  .lang-btn span{display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:#f1c40f;color:#000;font-size:calc(var(--ls)*.36);font-weight:700}
-  .lang-btn:hover img{visibility:hidden}.lang-btn:hover span,.lang-btn.bad span{display:flex}
+  .lang-btn span{display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:transparent;color:#fff;text-shadow:0 0 3px #000,0 0 6px #000;font-size:calc(var(--ls)*.38)}
+  .lang-btn:hover img{opacity:.4}.lang-btn:hover span,.lang-btn.bad span{display:flex}
   .lang-btn.on{box-shadow:inset 0 0 0 3px #f1c40f}`;
   document.head.appendChild(S);
 
@@ -30,14 +28,11 @@
     });
     return d;
   };
-  const sw = makeLangSwitch();
-  sw.style.cssText = "top:calc(45*var(--u));right:calc(115*var(--u));--ls:calc(55*var(--u))";
-  $("home-screen").appendChild(sw);
 
   /* ---------- dictionnaire ---------- */
   const EX = {
     "Latest spawn": "Dernière apparition", "Latest good spawn": "Dernière bonne apparition", "Best spawn": "Meilleure apparition",
-    "INVENTORY": "INVENTAIRE", "Close ✖": "Fermer ✖", "Apples": "Pommes", "Luck Potions": "Potions de chance", "🏪 SHOP": "🏪 BOUTIQUE",
+    "INVENTORY": "INVENTAIRE", "Close ✖": "Fermer ✖", "Apples": "Pommes", "Luck Potions": "Potions de chance", "SHOP": "BOUTIQUE", "Language": "Langue",
     "Yes": "Oui", "No": "Non", "Confirm": "Confirmer", "Cancel": "Annuler", "Sell Apples": "Vendre des pommes",
     'Type "Max" to sell all': 'Écris "Max" pour tout vendre',
     "Inventory": "Inventaire", "Shop": "Boutique", "Leave?": "Quitter ?", "Trade": "Échange", "TRADE": "ÉCHANGE",
@@ -63,7 +58,10 @@
     "Username or email": "Nom d'utilisateur ou e-mail", "Password (6+ chars)": "Mot de passe (6 caractères min.)",
     "Invalid username": "Pseudo invalide", "Username already taken": "Pseudo déjà pris",
     "Choose a username (3-16: a-z, 0-9, _):": "Choisis un pseudo (3-16 : a-z, 0-9, _) :",
-    "Choose your username and profile picture": "Choisis ton pseudo et ta photo de profil", "Edit your profile picture": "Modifier ta photo de profil", "Choose your profile picture": "Choisis ta photo de profil",
+    "Choose your username and profile picture": "Choisis ton pseudo et ta photo de profil", "Edit your profile picture": "Modifier ta photo de profil", "Choose your profile picture": "Choisis ta photo de profil", "Autosell": "Vente auto", "All": "Tout", "None": "Aucun", "Online": "En ligne", "Offline": "Hors ligne", "Send Trade Request": "Envoyer une demande d'échange",
+    "Type a username to search": "Tape un pseudo pour chercher", "Log in / Sign up": "Se connecter / S'inscrire", "Google account linked!": "Compte Google lié !", "Your offer": "Ton offre", "Quantity to add": "Quantité à ajouter", "Nothing yet": "Rien pour l'instant", "You have no apples": "Tu n'as aucune pomme", "Send Trade": "Envoyer l'échange", "Search for a user": "Rechercher un joueur", "No player found": "Aucun joueur trouvé", "Username": "Pseudo",
+    "sent you a trade request": "t'a envoyé une demande d'échange", "Request sent": "Demande envoyée", "Trade request sent!": "Demande d'échange envoyée !",
+    "Request already pending": "Demande déjà en attente", "Trade request accepted": "Demande d'échange acceptée", "Trade request declined": "Demande d'échange refusée", "Select apples to sell": "Sélectionner des pommes à vendre", "Select all": "Tout sélectionner", "Sell": "Vendre", "Apples selected are sold automatically when collected": "Les pommes sélectionnées sont vendues automatiquement quand tu les ramasses",
     "Username (3-16: a-z, 0-9, _)": "Pseudo (3-16 : a-z, 0-9, _)", "Profile picture URL (https://...)": "URL de la photo de profil (https://...)",
     "Continue": "Continuer", "Save": "Enregistrer", "Log out": "Se déconnecter", "Close": "Fermer", "Import my local progress": "Importer ma progression locale",
     "Invalid picture URL (must start with https://)": "URL de photo invalide (doit commencer par https://)"
@@ -72,13 +70,14 @@
     "Candy Apples": "des pommes d'amour", "Lava Apples": "des pommes de lave", "Galaxy Apples": "des pommes galactiques", "Dark Apples": "des pommes noires",
     "Salhini Appelini": "des Salhini Appelini", "Bloodmoon Apple": "des pommes Bloodmoon", "Moony Apple": "des pommes lunaires" };
   const RX = [
-    [/^Score: (.*)$/, "Score : $1"], [/^Timer: (.*)$/, "Temps : $1"], [/^Luck x(\d+)$/, "Chance x$1"],
+    [/^Score: (.*)$/, "Score : $1"],
+    [/^Trading with (@\S+)$/, "Échange avec $1"], [/^(@\S+)'s offer$/, "Offre de $1"], [/^(@\S+) cancelled the trade$/, "$1 a annulé l'échange"], [/^Timer: (.*)$/, "Temps : $1"], [/^Luck x(\d+)$/, "Chance x$1"],
     [/^⚠️SERVERS RESET IN (\d+)s$/, "⚠️RÉINITIALISATION DES SERVEURS DANS $1s"],
     [/^Sell (.+) \((\+.+)\)$/, (m, n, p) => `Vendre ${SN[n] || n} (${p})`],
     [/^You don't have enough: (.+)$/, "Tu n'as pas assez de : $1"],
     [/^Import your local progress from "(.*)"\?$/, "Importer ta progression locale depuis « $1 » ?"]
   ];
-  const tt = core => { if (EX[core]) return EX[core]; for (const [r, s] of RX) if (r.test(core)) return core.replace(r, s); return null; };
+  const tt = core => { if (Object.prototype.hasOwnProperty.call(EX, core)) return EX[core]; for (const [r, s] of RX) if (r.test(core)) return core.replace(r, s); return null; };
   window.T = s => lang === "fr" ? (tt(s) ?? s) : s;
 
   /* messages du haut/bas (HTML) */
@@ -128,9 +127,10 @@
     lang = c; localStorage.setItem("fc_lang", c);
     document.querySelectorAll(".lang-btn").forEach(b => b.classList.toggle("on", b.dataset.l === c));
     const fr = c === "fr", cards = document.querySelectorAll(".mode-card");
-    cards[0].innerHTML = fr ? "MODE<br>AVENTURE" : "ADVENTURE<br>MODE";
-    cards[1].innerHTML = fr ? "MODE<br>ARCADE" : "ARCADE<br>MODE";
-    if (fr) walk(document.body); else restore();
+    document.documentElement.classList.toggle("fr", fr);
+    if (cards[0]) cards[0].innerHTML = fr ? "MODE<br>AVENTURE" : "ADVENTURE<br>MODE";
+    if (cards[1]) cards[1].innerHTML = fr ? "MODE<br>ARCADE" : "ARCADE<br>MODE";
+    try { if (fr) walk(document.body); else restore(); } catch (e) { console.error("i18n:", e); }
     window.dispatchEvent(new Event("langchange"));
   }
   if (lang === "fr") setLang("fr");
