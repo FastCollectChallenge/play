@@ -1,16 +1,29 @@
 // game-ui.js : logos, popups sans pause, Échap / clic extérieur, Select apples to sell, Autosell, +$
 (function () {
   const $ = id => document.getElementById(id);
+  const TITLE_LOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge%20Title%20logo.png";
   const LOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge%20Ingame%20logo.png";
   const PRICE = { red: 1, green: 3, golden: 7, diamond: 15, candy: 50, lava: 200, galaxy: 500, dark: 1000, moony: 50000, salhini: 676767, bloodmoon: 6666666 };
   const css = document.createElement("style");
-  css.textContent = `.nun,.nun *{font-family:'Nunito',sans-serif!important}
-  .side-btn .side-btn-label{font-size:6px!important}
-  #side-buttons{left:104px!important}
-  #trade-btn{position:absolute!important;top:0;left:-84px}
+  css.textContent = `.nun,.nun *{font-family:'Nunito',sans-serif!important;font-weight:700!important}
+  .logo-placeholder{border:none!important;background:none!important;padding:0!important}
+  #inv-btn .side-btn-label{font-size:6px!important}
+  #shop-btn .side-btn-label,#index-btn .side-btn-label,#trade-btn .side-btn-label{font-size:10px!important}
+  .fr #shop-btn .side-btn-label,.fr #trade-btn .side-btn-label{font-size:8px!important}
+  @keyframes popin{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+  @keyframes fadein{from{opacity:0}to{opacity:1}}
+  #inventory-screen,#shop-screen,#index-screen,#trade-screen,.sell-box,.confirm-box,#autosell-modal>div{animation:popin .22s ease-out}
+  #sell-modal,#custom-confirm-modal,#autosell-modal,#profile-page{animation:fadein .2s ease-out}
+  #sell-modal .sell-box{width:460px!important}
+  .qty-col{display:flex;flex-direction:column;gap:6px}
+  .qty-btn{border:0;border-radius:8px;padding:8px 0;font-size:10px;color:#fff;cursor:pointer}
+  .qty-btn:hover{filter:brightness(1.2)}.qty-neg{background:#c23616}.qty-pos{background:#487eb0}
+  #trade-btn{position:absolute!important;top:0;left:84px}
+  #trade-btn .side-btn-label{color:#677f85}
+  #trade-btn img{filter:url(#fc-tint)}
   #inv-bar{position:absolute;left:30px;right:30px;bottom:18px;display:flex;justify-content:space-between;align-items:center;pointer-events:none}
   #inv-bar button{pointer-events:auto}
-  .bar-btn,.bar-half{border:0;font-size:16px;font-weight:900;color:#fff;cursor:pointer}
+  .bar-btn,.bar-half{border:0;font-size:16px;font-weight:400;color:#fff;cursor:pointer}
   .bar-btn{border-radius:14px;padding:12px 20px}.bar-half{padding:12px 22px}
   .bar-blue{background:#487eb0}.bar-green{background:#27ae60}.bar-yellow{background:#f1c40f;color:#000}.bar-red{background:#c23616}
   #bar-right{display:flex;gap:12px;align-items:center}
@@ -21,7 +34,7 @@
   #inventory-grid{padding-bottom:80px!important}
   #inventory-grid.selmode .sell-btn{display:none}
   #inventory-grid.selmode .inv-item-card.sel{border-color:#4ADE80;background:rgba(74,222,128,.25)}
-  .auto-card{background:rgba(255,255,255,.08);border:3px solid rgba(255,255,255,.15);border-radius:16px;padding:10px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-weight:800;font-size:14px}
+  .auto-card{background:rgba(255,255,255,.08);border:3px solid rgba(255,255,255,.15);border-radius:16px;padding:10px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-weight:400;font-size:14px}
   .auto-card img{width:56px;height:56px;object-fit:contain}.auto-card b{color:#7f8fa6}
   .auto-card.on{border-color:#27ae60;background:rgba(39,174,96,.25)}.auto-card.on b{color:#4ADE80}
   .money-pop{position:absolute;left:0;bottom:100%;color:#4ADE80;font-size:18px;line-height:1;-webkit-text-stroke:1px #fff;paint-order:stroke fill;text-shadow:0 0 4px rgba(0,0,0,.35);animation:mpop 1.3s ease-out forwards;pointer-events:none;white-space:nowrap}
@@ -29,17 +42,11 @@
   document.head.appendChild(css);
 
   /* ---------- logos ---------- */
-  const LOGO_IMG = new Image(); LOGO_IMG.src = LOGO;
-  const ft = CanvasRenderingContext2D.prototype.fillText;
-  CanvasRenderingContext2D.prototype.fillText = function (t, x, y, ...r) {
-    if (String(t).codePointAt(0) === 0x1F579) { if (LOGO_IMG.complete && LOGO_IMG.naturalWidth) this.drawImage(LOGO_IMG, x - 22, y - 36, 44, 44); return; }
-    return ft.call(this, t, x, y, ...r);
-  };
   const lg = document.querySelector(".logo-placeholder");
-  if (lg) lg.innerHTML = `<img src="${LOGO}" style="width:calc(50*var(--u));height:calc(50*var(--u));object-fit:contain;display:block">`;
+  if (lg) lg.innerHTML = `<img src="${LOGO}" style="width:calc(72*var(--u));height:calc(72*var(--u));object-fit:contain;display:block">`;
   const li = document.querySelector(".leave-icon");
-  if (li) li.innerHTML = `<img src="${LOGO}" style="width:34px;height:34px;object-fit:contain;display:block">`;
-  const ic = document.createElement("link"); ic.rel = "icon"; ic.href = LOGO; document.head.appendChild(ic);
+  if (li) li.innerHTML = `<img src="${TITLE_LOGO}" style="width:40px;height:40px;object-fit:contain;display:block">`;
+  const ic = document.createElement("link"); ic.rel = "icon"; ic.href = TITLE_LOGO; document.head.appendChild(ic);
 
   /* ---------- popups sans pause ---------- */
   const open = id => { const e = $(id); return !!e && getComputedStyle(e).display !== "none"; };
@@ -86,7 +93,7 @@
   const am = document.createElement("div"); am.id = "autosell-modal"; am.className = "nun";
   am.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)";
   am.innerHTML = `<div style="background:#2f3640;border:3px solid #27ae60;border-radius:20px;padding:24px;width:min(760px,92vw);max-height:80vh;overflow:auto;color:#fff">
-    <div style="font-size:22px;font-weight:900;margin-bottom:6px">Autosell</div>
+    <div style="font-size:22px;font-weight:400;margin-bottom:6px">Autosell</div>
     <div style="color:#dcdde1;margin-bottom:16px">Apples selected are sold automatically when collected</div>
     <div id="auto-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px"></div>
     <div style="text-align:right;margin-top:16px"><button id="auto-close" class="bar-btn bar-red">Close</button></div></div>`;
@@ -141,10 +148,12 @@
   /* ---------- Échap / clic en dehors ---------- */
   function closeTop() {
     if (open("custom-confirm-modal")) { $("custom-confirm-no-btn").click(); return true; }
+    if (open("add-modal")) { $("add-cancel").click(); return true; }
     if (open("sell-modal")) { closeSellModal(); return true; }
     if (open("autosell-modal")) { closeAuto(); return true; }
     const pf = $("profile-page");
     if (pf && pf.style.display === "flex" && $("pf-close").style.display === "block") { $("pf-close").click(); return true; }
+    if (open("trading-screen")) { $("trading-close").click(); return true; }
     if (open("trade-screen")) { $("tr-close").click(); return true; }
     if (open("inventory-screen")) { toggleInventory(false); return true; }
     if (open("shop-screen")) { toggleShop(false); return true; }
@@ -157,10 +166,44 @@
     if (t.id === "custom-confirm-modal") return $("custom-confirm-no-btn").click();
     if (t.id === "sell-modal") return closeSellModal();
     if (t.id === "autosell-modal") return closeAuto();
-    if (open("custom-confirm-modal") || open("sell-modal") || open("autosell-modal")) return;
+    if (t.id === "add-modal") return $("add-cancel").click();
+    if (open("custom-confirm-modal") || open("sell-modal") || open("autosell-modal") || open("add-modal")) return;
     if (t.closest("#side-buttons,#account-settings-btn")) return;
     const s = SCR.find(open);
     if (s && !$(s).contains(t)) closeTop();
   });
+  /* ---------- icône Trade en #677f85 (filtre SVG) ---------- */
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("width", "0"); svg.setAttribute("height", "0"); svg.style.position = "absolute";
+  svg.innerHTML = '<filter id="fc-tint" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 0.404  0 0 0 0 0.498  0 0 0 0 0.522  0 0 0 1 0"/></filter>';
+  document.body.appendChild(svg);
+
+  /* ---------- logo Discord ---------- */
+  const di = document.querySelector(".discord-btn-left img");
+  if (di) { di.src = "https://www.pngkey.com/png/full/20-200938_white-discord-logo-png-png-free-discord-logo.png"; di.style.borderRadius = "0"; di.style.objectFit = "contain"; }
+
+  /* ---------- vente : -1 -3 -5 -10 None | nombre | +1 +3 +5 +10 All ---------- */
+  const sb = document.querySelector("#sell-modal .sell-box"), qIn = $("sell-quantity");
+  qIn.style.display = "none";
+  const hint = sb.querySelector(".sell-hint"); if (hint) hint.style.display = "none";
+  const qui = document.createElement("div");
+  qui.style.cssText = "display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:12px;align-items:center;margin:14px 0";
+  const col = (vals, cls, last) => `<div class="qty-col">${vals.map(v => `<button class="qty-btn ${cls}" data-d="${v}">${v}</button>`).join("")}<button class="qty-btn ${cls}" data-d="${last.toLowerCase()}">${last}</button></div>`;
+  qui.innerHTML = col(["-1", "-3", "-5", "-10"], "qty-neg", "None") + '<div id="qty-num" style="font-size:26px;text-align:center;color:#fff">0</div>' + col(["+1", "+3", "+5", "+10"], "qty-pos", "All");
+  sb.insertBefore(qui, sb.querySelector(".sell-actions"));
+  let qty = 0;
+  const stock = () => { const a = acc(); return a && activeSellType ? (a[APPLE_FIELDS[activeSellType]] || 0) : 0; };
+  const setQty = n => { qty = Math.max(0, Math.min(stock(), n)); $("qty-num").textContent = qty; qIn.value = String(qty); };
+  qui.addEventListener("click", e => {
+    const b = e.target.closest("[data-d]"); if (!b) return; const d = b.dataset.d;
+    setQty(d === "none" ? 0 : d === "all" ? stock() : qty + parseInt(d));
+  });
+  const _os = window.openSellModal;
+  window.openSellModal = function () { _os.apply(this, arguments); setQty(0); };
+
+  /* ---------- titres sans émoji ---------- */
+  const ti = document.querySelector("#index-screen .inv-title-text"); if (ti) ti.textContent = "INDEX";
+  const ts = document.querySelector("#shop-screen .inv-title-text"); if (ts) ts.textContent = "SHOP";
+
   decorate();
 })();
