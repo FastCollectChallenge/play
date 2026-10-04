@@ -608,7 +608,7 @@
         function renderIndexGrid() {
             const grid = document.getElementById("index-grid"); grid.innerHTML = "";
             const activeData = accounts[currentAccountName] || {};
-            APPLE_ORDER.forEach(type => {
+            APPLE_ORDER.filter(type => type !== 'salhini').forEach(type => {
                 const discovered = (activeData.discovered && activeData.discovered[type]) || (activeData[APPLE_FIELDS[type]] > 0);
                 const card = document.createElement("div"); card.className = "index-item-card";
                 card.innerHTML = `<img class="index-item-img${discovered ? '' : ' locked'}" src="${IMG_FRUITS[type]}" alt="${APPLE_NAMES[type]}"><div class="index-item-name">${discovered ? APPLE_NAMES[type] : '???'}</div>`;
