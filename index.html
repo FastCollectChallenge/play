@@ -91,6 +91,22 @@
 
         #msg-container-top { position: fixed; top: 60px; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 10000; pointer-events: none; }
         #msg-container-bottom { position: fixed; bottom: 150px; left: 0; width: 100%; display: flex; flex-direction: column-reverse; align-items: center; z-index: 10000; pointer-events: none; }
+
+        /* Messages "spawned in your server" / annonces admin : même police que "Latest spawn" */
+        .admin-msg, .admin-msg * { font-family: 'Nunito', sans-serif !important; font-weight: 700 !important; }
+        /* Raretés (nom coloré + petite rareté dessous) */
+        .ap-label { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; line-height: 1.1; min-width: 0; }
+        .index-item-card .ap-label { align-items: center; }
+        .ap-name, .ap-rarity { font-family: 'Nunito', sans-serif !important; font-weight: 800 !important; display: inline-block; }
+        .ap-name { font-size: 14px; }
+        .ap-rarity { font-size: 8px; letter-spacing: .6px; text-transform: uppercase; }
+        .r-common .ap-name, .r-common .ap-rarity { color: #1b9e6e; }
+        .r-rare .ap-name, .r-rare .ap-rarity { color: #3498ff; }
+        .r-epic .ap-name, .r-epic .ap-rarity { color: #a55eea; }
+        .r-godly .ap-name, .r-godly .ap-rarity { background: linear-gradient(90deg,#ff5e5e,#ffb84d,#fff35c,#5dff7a,#5cc8ff,#b57aff,#ff5e5e); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: rbmove 3s linear infinite; }
+        .r-secret .ap-name, .r-secret .ap-rarity { background: linear-gradient(90deg,#fff,#000,#fff,#000,#fff); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff); animation: rbmove 4s linear infinite; }
+        .r-admin .ap-name, .r-admin .ap-rarity { background: linear-gradient(90deg,#ff2d2d,#ffd400); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        @keyframes rbmove { from { background-position: 0 0; } to { background-position: 200% 0; } }
         .admin-msg { font-size: 26px; text-align: center; text-shadow: 2px 2px 10px rgba(0,0,0,0.9); margin: 5px 0; width: 100%; }
         .txt-violet { color: #A020F0; }
         .rainbow-text { background: linear-gradient(to right, #ff9999, #ffcc99, #ffff99, #99ff99, #99ccff, #cc99ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block; filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.3)); }
@@ -577,7 +593,7 @@
                 itemTypes.forEach(item => {
                     if (item.count > 0) {
                         const card = document.createElement("div"); card.className = "inv-item-card";
-                        card.innerHTML = `<div class="inv-item-info"><img src="${item.content}" class="inv-item-icon-img" /><span class="inv-item-count">x${fmtNum(item.count)}</span></div><button class="sell-btn" onclick="event.stopPropagation(); openSellModal('${item.id}')">💱</button>`;
+                        card.innerHTML = `<div class="inv-item-info"><img src="${item.content}" class="inv-item-icon-img" />${appleLabelHTML(item.id)}<span class="inv-item-count">x${fmtNum(item.count)}</span></div><button class="sell-btn" onclick="event.stopPropagation(); openSellModal('${item.id}')">💱</button>`;
                         grid.appendChild(card);
                     }
                 });
@@ -630,7 +646,7 @@
             APPLE_ORDER.filter(type => type !== 'salhini').forEach(type => {
                 const discovered = (activeData.discovered && activeData.discovered[type]) || (activeData[APPLE_FIELDS[type]] > 0);
                 const card = document.createElement("div"); card.className = "index-item-card";
-                card.innerHTML = `<img class="index-item-img${discovered ? '' : ' locked'}" src="${IMG_FRUITS[type]}" alt="${APPLE_NAMES[type]}"><div class="index-item-name">${discovered ? APPLE_NAMES[type] : '???'}</div>`;
+                card.innerHTML = `<img class="index-item-img${discovered ? '' : ' locked'}" src="${IMG_FRUITS[type]}" alt="${APPLE_NAMES[type]}"><div class="index-item-name">${discovered ? appleLabelHTML(type) : '???'}</div>`;
                 grid.appendChild(card);
             });
         }
@@ -698,14 +714,8 @@
                     saveAllAccounts();
                     
                     // Application instantanée de l'effet de chance de la potion dans la partie
-                    luckMultiplier = product.multiplier;
-                    currentLuck = ((currentGameMode === "adventure") ? 0.20 : 0.05) * luckMultiplier;
-                    
                     showAdvancedMsg(`You activated Potion ${product.multiplier}x luck!`, 'bottom', getLuckStyle(product.multiplier));
-                    startHudTimer('luck', LUCK_IMAGES[product.multiplier] || IMG_POTIONS[product.type], product.duration, "🍀", () => {
-                        luckMultiplier = 1;
-                        currentLuck = (currentGameMode === "adventure") ? 0.20 : 0.05;
-                    });
+                    addLuck(product.multiplier, product.duration, LUCK_IMAGES[product.multiplier] || IMG_POTIONS[product.type]);
                     toggleInventory(false);
                 }
             });
@@ -722,7 +732,7 @@
             else if (type === 'lava') title.innerText = "Sell Lava Apples (+200$)";
             else if (type === 'galaxy') title.innerText = "Sell Galaxy Apples (+500$)";
             else if (type === 'dark') title.innerText = "Sell Dark Apples (+1K$)";
-            else if (type === 'salhini') title.innerText = "Sell Salhini Appelini (+676.8K$)";
+            else if (type === 'salhini') title.innerText = "Sell Salhini Appelini (+100M$)";
             else if (type === 'bloodmoon') title.innerText = "Sell Bloodmoon Apple (+6.7M$)";
             else if (type === 'moony') title.innerText = "Sell Moony Apple (+50K$)";
             if (NEW_APPLES[type]) title.innerText = `Sell ${NEW_APPLES[type].name} (+${fmtNum(NEW_APPLES[type].price)}$)`;
@@ -742,7 +752,7 @@
             else if (activeSellType === 'lava') { currentStock = activeData.lavaApples || 0; unitPrice = 200; }
             else if (activeSellType === 'galaxy') { currentStock = activeData.galaxyApples || 0; unitPrice = 500; }
             else if (activeSellType === 'dark') { currentStock = activeData.darkApples || 0; unitPrice = 1000; }
-            else if (activeSellType === 'salhini') { currentStock = activeData.salhiniApples || 0; unitPrice = 676767; }
+            else if (activeSellType === 'salhini') { currentStock = activeData.salhiniApples || 0; unitPrice = 100000000; }
             else if (activeSellType === 'bloodmoon') { currentStock = activeData.bloodmoonApples || 0; unitPrice = 6666666; }
             else if (activeSellType === 'moony') { currentStock = activeData.moonyApples || 0; unitPrice = 50000; }
 
@@ -798,10 +808,32 @@
 
         resize(); updateDvdApple(); loadAllAccounts();
 
+        /* ===== Système de chance unifié =====
+           Chaque boost (potion / admin) a sa propre source et son propre minuteur.
+           La chance appliquée est le PLUS GRAND multiplicateur actif. */
+        const luckSources = {};
+        let greenTimeActive = false;
+        function applyLuck() {
+            const base = (currentGameMode === "adventure") ? 0.20 : 0.05;
+            luckMultiplier = Math.max(1, ...Object.values(luckSources));
+            currentLuck = greenTimeActive ? 1.0 : base * luckMultiplier;
+        }
+        function addLuck(mult, dur, url) {
+            mult = Number(mult); if (!Number.isFinite(mult) || mult <= 0) return;
+            const id = 'luck_' + mult;
+            luckSources[id] = mult; applyLuck();
+            startHudTimer(id, url, dur, "🍀", () => { delete luckSources[id]; applyLuck(); });
+        }
+        function resetEffects() { // coupe tous les boosts et minuteurs (quitter / relancer / clearLuck)
+            Object.keys(activeTimers).forEach(id => { clearInterval(activeTimers[id].interval); const c = document.getElementById('event-' + id); if (c) c.remove(); delete activeTimers[id]; });
+            Object.keys(luckSources).forEach(k => delete luckSources[k]);
+            greenTimeActive = false; scoreMult = 1; appleMultiplier = 1; applyLuck();
+        }
+
         function leaveGame() {
             setMode('menu');
             gameActive = false; if (gameSpawnInterval) { clearInterval(gameSpawnInterval); gameSpawnInterval = null; }
-            apples = []; ball.speed = ball.baseSpeed; luckMultiplier = 1; setSpawnPanel(false); if (currentGameMode === "adventure") { saveAllAccounts(); }
+            apples = []; ball.speed = ball.baseSpeed; resetEffects(); setSpawnPanel(false); if (currentGameMode === "adventure") { saveAllAccounts(); }
             document.getElementById("home-screen").style.display = "flex";
             document.getElementById("score").style.display = "none"; document.getElementById("timer-display").style.display = "none";
             document.getElementById("adventure-hud").style.display = "none"; document.getElementById("leave-game-btn").style.display = "none"; document.getElementById("side-buttons").style.display = "none";
@@ -810,7 +842,7 @@
         }
 
         function startGame() {
-            currentGameMode = "arcade"; luckMultiplier = 1; currentLuck = 0.05; setSpawnPanel(false); setMode('arcade'); 
+            currentGameMode = "arcade"; resetEffects(); setSpawnPanel(false); setMode('arcade'); 
             document.getElementById("home-screen").style.display = "none";
             document.getElementById("score").style.display = "block"; document.getElementById("timer-display").style.display = "block";
             document.getElementById("adventure-hud").style.display = "none"; document.getElementById("leave-game-btn").style.display = "flex"; document.getElementById("side-buttons").style.display = "none";
@@ -825,7 +857,7 @@
         }
 
         function startAdventure() {
-            currentGameMode = "adventure"; luckMultiplier = 1; currentLuck = 0.20; resetSpawnPanel(); setSpawnPanel(true); 
+            currentGameMode = "adventure"; resetEffects(); resetSpawnPanel(); setSpawnPanel(true); 
             document.getElementById("home-screen").style.display = "none";
             document.getElementById("score").style.display = "none"; document.getElementById("timer-display").style.display = "none";
             document.getElementById("adventure-hud").style.display = "block"; document.getElementById("leave-game-btn").style.display = "flex"; document.getElementById("side-buttons").style.display = "flex";
@@ -843,17 +875,15 @@
         channel.subscribe((msg) => {
             const d = msg.data; if (!gameActive) return; 
             if (msg.name === 'luck') { 
-                luckMultiplier = d.mult; currentLuck = ((currentGameMode === "adventure") ? 0.20 : 0.05) * luckMultiplier;
                 showAdvancedMsg(`FelixRouge activated ${d.mult}x luck!`, 'bottom', getLuckStyle(d.mult)); 
-                startHudTimer('luck', LUCK_IMAGES[d.mult], d.time, "🍀", () => { luckMultiplier = 1; currentLuck = (currentGameMode === "adventure") ? 0.20 : 0.05; }); 
+                addLuck(d.mult, d.time, LUCK_IMAGES[d.mult]); 
             }
 
             if (msg.name === 'customLuck') {
-                luckMultiplier = d.mult; currentLuck = ((currentGameMode === "adventure") ? 0.20 : 0.05) * luckMultiplier;
                 const luckUrl = "https://static.wikia.nocookie.net/stealabr/images/0/09/30x_Luck.webp/revision/latest/scale-to-width/360?cb=20260515140747";
                 if (LUCK_IMAGES[d.mult]) { showAdvancedMsg("FelixRouge activated " + d.mult + "x luck for " + fmtTime(d.time) + "!", 'bottom', getLuckStyle(d.mult)); }
                 else { showAdvancedMsg("<span style='color: #ff3838; font-weight: 900;'>FelixRouge</span> activated " + d.mult + "x luck for " + fmtTime(d.time) + "!", 'bottom', {color: 'white'}); }
-                startHudTimer('custom_luck', LUCK_IMAGES[d.mult] || luckUrl, d.time, "🍀", () => { luckMultiplier = 1; currentLuck = (currentGameMode === "adventure") ? 0.20 : 0.05; });
+                addLuck(d.mult, d.time, LUCK_IMAGES[d.mult] || luckUrl);
             }
 
             if (msg.name === 'customSpawn' && currentGameMode === "adventure") {
@@ -869,9 +899,9 @@
             }
 
             if (msg.name === 'greentime') { 
-                let oldL = currentLuck; currentLuck = 1.0; 
+                greenTimeActive = true; applyLuck(); 
                 showAdvancedMsg(`FelixRouge activated <span class="txt-violet">Green time</span>!`, 'bottom', getGTStyle(d.time)); 
-                startHudTimer('gt', "https://static.vecteezy.com/system/resources/previews/016/733/263/non_2x/cute-illustration-of-a-green-apple-in-cartoon-style-on-isolated-background-vector.jpg", d.time, "🍏", () => { currentLuck = oldL; }); 
+                startHudTimer('gt', "https://static.vecteezy.com/system/resources/previews/016/733/263/non_2x/cute-illustration-of-a-green-apple-in-cartoon-style-on-isolated-background-vector.jpg", d.time, "🍏", () => { greenTimeActive = false; applyLuck(); }); 
             }
             if (msg.name === 'doublepoints') { scoreMult = 2; appleMultiplier = 2; showAdvancedMsg(`FelixRouge activated <span class="txt-violet">Double Points</span>!`, 'bottom', {isRainbow: true}); startHudTimer('dp', "https://fridg-front.s3.amazonaws.com/media/CACHE/images/products/lot-de-2-pommes-fuji_fEa1aJa/8e7b583a2aa9503e79230ddfaf062316.jpg", d.time, "🍎", () => { scoreMult = 1; appleMultiplier = 1; }); }
             
@@ -883,8 +913,7 @@
             if (msg.name === 'ballSpeed') { ball.baseSpeed = BASE_BALL_SPEED * d.mult; ball.speed = ball.baseSpeed; showAdvancedMsg(`FelixRouge set ball speed to x${d.mult}`, 'bottom', d.mult >= 2 ? {color:'black'} : {color:'white'}); }
             if (msg.name === 'announce') showAdvancedMsg(d.text, 'top', {color: 'white'});
             if (msg.name === 'clearLuck') { 
-                luckMultiplier = 1; currentLuck = (currentGameMode === "adventure") ? 0.20 : 0.05; scoreMult = 1; appleMultiplier = 1; 
-                Object.keys(activeTimers).forEach(id => { clearInterval(activeTimers[id].interval); let c = document.getElementById('event-'+id); if(c) c.remove(); delete activeTimers[id]; }); 
+                resetEffects(); 
             }
             
             if (msg.name === 'reset') {
@@ -934,6 +963,18 @@
         const APPLE_NAMES = { red: 'Red Apple', green: 'Green Apple', golden: 'Golden Apple', diamond: 'Diamond Apple', candy: 'Candy Apple', lava: 'Lava Apple', galaxy: 'Galaxy Apple', dark: 'Dark Apple', moony: 'Moony Apple', salhini: 'Salhini Appelini', bloodmoon: 'Bloodmoon Apple' };
         const APPLE_FIELDS = { red: 'redApples', green: 'greenApples', golden: 'goldenApples', diamond: 'diamondApples', candy: 'candyApples', lava: 'lavaApples', galaxy: 'galaxyApples', dark: 'darkApples', moony: 'moonyApples', salhini: 'salhiniApples', bloodmoon: 'bloodmoonApples' };
         Object.keys(NEW_APPLES).forEach(k => { APPLE_NAMES[k] = NEW_APPLES[k].name; APPLE_FIELDS[k] = NEW_APPLES[k].field; });
+
+        /* ===== Raretés ===== */
+        const RARITY_LABELS = { common: 'Common', rare: 'Rare', epic: 'Epic', godly: 'Godly', secret: 'Secret', admin: 'Admin' };
+        const APPLE_RARITY = { red: 'common', green: 'common', golden: 'rare', diamond: 'rare', candy: 'epic', lava: 'epic', galaxy: 'epic', dark: 'epic',
+            cheezy: 'godly', moony: 'godly', sand: 'godly',
+            amethyst: 'secret', ice: 'secret', sapphire: 'secret', rainbow: 'secret', bloodmoon: 'secret', canneloni: 'secret',
+            salhini: 'admin' };
+        function appleLabelHTML(type) {
+            const r = APPLE_RARITY[type] || 'common';
+            return `<div class="ap-label r-${r}"><span class="ap-name">${APPLE_NAMES[type]}</span><span class="ap-rarity">${RARITY_LABELS[r]}</span></div>`;
+        }
+
         const GOOD_SPAWN_MIN_RANK = APPLE_ORDER.indexOf('lava');
         const LATEST_SPAWN_LIMIT = 2;      // "Latest spawn" : les 2 dernières pommes
         const LATEST_GOOD_SPAWN_LIMIT = 1; // "Latest good spawn" : 1 seule pomme
@@ -980,30 +1021,35 @@
                     apples.push({ x: Math.random() * (canvas.width - 60), y: Math.random() * (canvas.height - 60), size: 25, type: isOp ? 'green' : 'red' });
                 } 
                 else if (currentGameMode === "adventure") {
-                    let newType = null;
-                    if (!fG) { for (const id of Object.keys(NEW_APPLES)) { if (Math.random() < NEW_APPLES[id].chance * luckMultiplier) { newType = id; break; } } }
-                    if (newType) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: newType }); newAppleMsg(newType); recordSpawn(newType); continue; }
-                    let rng = Math.random();
-                    let bloodmoonChance = 0.00000666 * luckMultiplier;
-                    let darkChance = 0.001 * luckMultiplier;
-                    let salhiniChance = 0; // Salhini : admin only
-                    let moonyChance = 0.0001 * luckMultiplier;
-                    let galaxyChance = 0.003 * luckMultiplier;
-                    let lavaChance = 0.005 * luckMultiplier;
-                    let candyChance = 0.01 * luckMultiplier;
-                    let diamondChance = 0.05 * luckMultiplier;
-                    let goldenChance = 0.10 * luckMultiplier;
-
-                    if (!fG && rng < bloodmoonChance) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 36, type: 'bloodmoon' }); showAdvancedMsg("A Bloodmoon apple spawned in your server!", 'bottom', {color: '#8b0000'}); }
-                    else if (!fG && rng < (bloodmoonChance + salhiniChance)) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: 'salhini' }); showAdvancedMsg("A Salhini Appelini spawned in your server!", 'bottom', {color: '#F5D7C3'}); }
-                    else if (!fG && rng < (bloodmoonChance + salhiniChance + moonyChance)) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: 'moony' }); showAdvancedMsg("A Moony Apple spawned in your server!", 'bottom', {stops: ['#BFC1C2', '#F8F8F8', '#9EA0A2', '#ECECEC']}); }
-                    else if (!fG && rng < (bloodmoonChance + salhiniChance + moonyChance + darkChance)) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: 'dark' }); } 
-                    else if (!fG && rng < (bloodmoonChance + salhiniChance + moonyChance + darkChance + galaxyChance)) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: 'galaxy' }); } 
-                    else if (!fG && rng < (bloodmoonChance + salhiniChance + moonyChance + darkChance + galaxyChance + lavaChance)) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: 'lava' }); } 
-                    else if (!fG && rng < (bloodmoonChance + salhiniChance + moonyChance + darkChance + galaxyChance + lavaChance + candyChance)) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: 'candy' }); } 
-                    else if (!fG && rng < (bloodmoonChance + salhiniChance + moonyChance + darkChance + galaxyChance + lavaChance + candyChance + diamondChance)) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: 'diamond' }); } 
-                    else if (!fG && rng < (bloodmoonChance + salhiniChance + moonyChance + darkChance + galaxyChance + lavaChance + candyChance + diamondChance + goldenChance)) { apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: 32, type: 'golden' }); } 
-                    else {
+                    // Testé du plus rare au plus commun, chance plafonnée à 100 % :
+                    // à très forte chance on obtient la MEILLEURE pomme, pas la première de la liste.
+                    const TIERS = [
+                        ['canneloni', NEW_APPLES.canneloni.chance, 32],
+                        ['bloodmoon', 0.00000666, 36],
+                        ['rainbow',   NEW_APPLES.rainbow.chance,   32],
+                        ['sapphire',  NEW_APPLES.sapphire.chance,  32],
+                        ['ice',       NEW_APPLES.ice.chance,       32],
+                        ['amethyst',  NEW_APPLES.amethyst.chance,  32],
+                        ['moony',     0.0001, 32],
+                        ['sand',      NEW_APPLES.sand.chance,      32],
+                        ['cheezy',    NEW_APPLES.cheezy.chance,    32],
+                        ['dark',      0.001, 32],
+                        ['galaxy',    0.003, 32],
+                        ['lava',      0.005, 32],
+                        ['candy',     0.01,  32],
+                        ['diamond',   0.05,  32],
+                        ['golden',    0.10,  32]
+                    ]; // Salhini : admin uniquement
+                    let type = null, size = 25;
+                    if (!fG) for (const [t, p, sz] of TIERS) {
+                        if (Math.random() < Math.min(1, p * luckMultiplier)) { type = t; size = sz; break; }
+                    }
+                    if (type) {
+                        apples.push({ x: Math.random() * (canvas.width - 35), y: Math.random() * (canvas.height - 35), size: size, type: type });
+                        if (NEW_APPLES[type]) newAppleMsg(type);
+                        else if (type === 'bloodmoon') showAdvancedMsg("A Bloodmoon apple spawned in your server!", 'bottom', {color: '#8b0000'});
+                        else if (type === 'moony') showAdvancedMsg("A Moony Apple spawned in your server!", 'bottom', {stops: ['#BFC1C2', '#F8F8F8', '#9EA0A2', '#ECECEC']});
+                    } else {
                         let isOp = fG || Math.random() < currentLuck;
                         apples.push({ x: Math.random() * (canvas.width - 60), y: Math.random() * (canvas.height - 60), size: 25, type: isOp ? 'green' : 'red' });
                     }
