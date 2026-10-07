@@ -35,6 +35,7 @@
     "INVENTORY": "INVENTAIRE", "Close ✖": "Fermer ✖", "Apples": "Pommes", "Luck Potions": "Potions de chance", "SHOP": "BOUTIQUE", "Language": "Langue",
     "Yes": "Oui", "No": "Non", "Confirm": "Confirmer", "Cancel": "Annuler", "Sell Apples": "Vendre des pommes",
     'Type "Max" to sell all': 'Écris "Max" pour tout vendre',
+    "Common": "Commun", "Rare": "Rare", "Epic": "Épique", "Godly": "Divin", "Secret": "Secret", "Admin": "Admin",
     "Inventory": "Inventaire", "Shop": "Boutique", "Leave?": "Quitter ?", "Trade": "Échange", "TRADE": "ÉCHANGE",
     "Red Apple": "Pomme rouge", "Green Apple": "Pomme verte", "Golden Apple": "Pomme dorée", "Diamond Apple": "Pomme diamant",
     "Candy Apple": "Pomme d'amour", "Lava Apple": "Pomme de lave", "Galaxy Apple": "Pomme galactique", "Dark Apple": "Pomme noire",
