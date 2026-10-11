@@ -31,6 +31,9 @@
 
   /* ---------- dictionnaire ---------- */
   const EX = {
+    "Enter the fuse machine": "Entrer dans la machine de fusion",
+    "to return it": "pour la ressortir", "The fuse is full": "La fuse est pleine",
+    "Skull Apple": "Pomme crâne", "Poisoned Apple": "Pomme empoisonnée", "Frostfire Apple": "Pomme feu-glace", "Elixir Apple": "Pomme élixir", "Corrupted Apple": "Pomme corrompue", "Ghost Apple": "Pomme fantôme", "Sun Apple": "Pomme soleil", "FUSE": "FUSIONNER", "You got": "Tu as obtenu", "You got nothing": "Tu n'as rien obtenu",
     "Latest spawn": "Dernière apparition", "Latest good spawn": "Dernière bonne apparition", "Best spawn": "Meilleure apparition",
     "INVENTORY": "INVENTAIRE", "Close ✖": "Fermer ✖", "Apples": "Pommes", "Luck Potions": "Potions de chance", "SHOP": "BOUTIQUE", "Language": "Langue",
     "Yes": "Oui", "No": "Non", "Confirm": "Confirmer", "Cancel": "Annuler", "Sell Apples": "Vendre des pommes",
