@@ -24,6 +24,7 @@ const T = s => (window.T ? window.T(s) : s);
 // Ce module ES ne peut pas lire les const du script classique index.html.
 const APPLE_FIELDS = { red:'redApples', green:'greenApples', golden:'goldenApples', diamond:'diamondApples', candy:'candyApples', lava:'lavaApples', galaxy:'galaxyApples', dark:'darkApples', moony:'moonyApples', salhini:'salhiniApples', bloodmoon:'bloodmoonApples', cheezy:'cheezyApples', sand:'sandApples', amethyst:'amethystApples', ice:'iceApples', sapphire:'sapphireApples', rainbow:'rainbowApples', canneloni:'canneloniApples' };
 const APPLE_NAMES = { red:'Red Apple', green:'Green Apple', golden:'Golden Apple', diamond:'Diamond Apple', candy:'Candy Apple', lava:'Lava Apple', galaxy:'Galaxy Apple', dark:'Dark Apple', moony:'Moony Apple', salhini:'Salhini Appelini', bloodmoon:'Bloodmoon Apple', cheezy:'Cheezy Apple', sand:'Sand Apple', amethyst:'Amethyst Apple', ice:'Ice Apple', sapphire:'Sapphire Apple', rainbow:'Rainbow Apple', canneloni:'Apple Canneloni' };
+Object.keys(NEW_APPLES).forEach(k => { APPLE_FIELDS[k] = NEW_APPLES[k].field; APPLE_NAMES[k] = NEW_APPLES[k].name; });
 const SHOP_PRODUCTS = [{id:'pot_x2_30',multiplier:2,duration:30},{id:'pot_x2_60',multiplier:2,duration:60},{id:'pot_x4_30',multiplier:4,duration:30},{id:'pot_x4_60',multiplier:4,duration:60},{id:'pot_x6_25',multiplier:6,duration:25},{id:'pot_x6_45',multiplier:6,duration:45},{id:'pot_x8_20',multiplier:8,duration:20},{id:'pot_x8_40',multiplier:8,duration:40},{id:'pot_x8_60',multiplier:8,duration:60},{id:'pot_x10_15',multiplier:10,duration:15},{id:'pot_x10_30',multiplier:10,duration:30}];
 const toast = m => showAdvancedMsg(T(m), "top", { color: "white" });
 const toastG = m => showAdvancedMsg(T(m), "top", { color: "#2ecc71" });
@@ -198,6 +199,7 @@ async function ensureProfile(user) {
 function applyRemote(v) {
   rev = v.rev; username = v.username; myPhoto = v.photo || ""; setAvatar(myPhoto); if (window.autosellReset) window.autosellReset();
   accounts = { [username]: normalize(v.data) }; currentAccountName = username;
+  window.__fcUser = username; try { setMode(window.__fcMode || "menu"); } catch (e) {}
   updateAdventureHUD();
 }
 
@@ -401,7 +403,7 @@ function openTrading(t) {
   curUnsub = onSnapshot(doc(db, "trades", t.id), s => {
     if (!s.exists()) return stopTrading();
     cur = { id: s.id, ...s.data() };
-    if (cur.status === "completed") { applyTrade({ id: cur.id }); toastG(`Trade with @${other} completed!`); return stopTrading(); }
+    if (cur.status === "completed") { toastG(`Trade with @${other} completed!`); return stopTrading(); }
     if (cur.status !== "accepted") { if (cur.cancelledBy !== me) toastG("@" + other + " cancelled the trade"); return stopTrading(); }
     renderTrading();
   });
@@ -569,8 +571,8 @@ async function onGoogleCredential(resp) {
 onAuthStateChanged(auth, async user => {
   unsubs.forEach(u => u()); unsubs = []; loaded = false; inbox = []; outbox = []; stopTrading();
   if (!user) {
+    window.__fcUser = ""; try { setMode(window.__fcMode || "menu"); } catch (e) {}
     if (me) { me = null; try { leaveGame(); } catch (e) {} }
-    if (!manualLogout) { signInAnonymously(auth).catch(e => { err(e); ov.style.display = "flex"; }); return; } // invité automatique
     ov.style.display = "flex"; return;
   }
   manualLogout = false;
