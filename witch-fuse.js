@@ -70,6 +70,17 @@
     const prompt = document.createElement("div"); prompt.id = "wf-prompt";
     prompt.innerHTML = '<div class="wf-k">E</div><div>Enter the fuse machine</div>';
     document.body.appendChild(prompt);
+  // cliquer / toucher la bulle (le "E") fait aussi entrer dans la machine
+  let overPrompt = false;
+  prompt.style.pointerEvents = "auto"; prompt.style.cursor = "pointer";
+  prompt.addEventListener("pointerenter", () => { overPrompt = true; });
+  prompt.addEventListener("pointerleave", () => { overPrompt = false; });
+  prompt.addEventListener("pointerdown", e => { e.preventDefault(); e.stopPropagation(); overPrompt = false; startVideo(); });
+  // téléphone : pas de survol, donc toucher la machine fait apparaître la bulle
+  window.addEventListener("pointerdown", e => {
+    if (e.pointerType !== "touch" || (e.target.closest && e.target.closest("#wf-prompt"))) return;
+    mx = e.clientX; my = e.clientY; refresh();
+  }, true);
 
     const vid = document.createElement("video"); vid.id = "wf-video"; vid.playsInline = true; vid.preload = "auto"; vid.src = VIDEO_SRC;
     document.body.appendChild(vid);
@@ -286,12 +297,12 @@
       if (!on) { if (promptOn) hideTip(); if (!active()) closeAll(); return; }
       const r = map.getBoundingClientRect(), pad = 6;
       hover = mx >= r.left - pad && mx <= r.right + pad && my >= r.top - pad && my <= r.bottom + pad;
-      const show = hover && !blocked();
+      const show = (hover || overPrompt) && !blocked();
       map.classList.toggle("hot", show);
       if (show) {
         prompt.style.display = "flex"; promptOn = true;
         const w = prompt.offsetWidth, h = prompt.offsetHeight; // bulle à gauche de la machine (collée au bord droit)
-        prompt.style.left = Math.max(8, r.left - w - 12) + "px";
+        prompt.style.left = Math.max(8, r.left - w - 4) + "px";
         prompt.style.top = Math.max(8, Math.min(window.innerHeight - h - 8, r.top + r.height / 2 - h / 2)) + "px";
       } else if (promptOn) hideTip();
     }
