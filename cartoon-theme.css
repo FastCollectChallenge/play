@@ -1,0 +1,133 @@
+/* cartoon-theme.css : thème cartoon coloré (bordures épaisses, boutons bombés)
+   Se superpose au CSS existant : aucun JS à modifier. Pour revenir en arrière, retirer la balise <link>. */
+:root { --ink: #2b1650; --ink-deep: #1a0d33; --gold: #ffd23f; }
+
+/* ---------- grands écrans ---------- */
+#inventory-screen, #shop-screen, #index-screen, #trade-screen, #trading-screen {
+  background: linear-gradient(180deg, #6a43d6, #3b2394) !important;
+  border: 6px solid var(--ink) !important; border-radius: 32px !important;
+  box-shadow: 0 10px 0 var(--ink-deep), 0 24px 40px rgba(0,0,0,.45), inset 0 4px 0 rgba(255,255,255,.25) !important;
+  backdrop-filter: none !important;
+}
+#shop-screen  { background: linear-gradient(180deg, #34a9f5, #2150c9) !important; }
+#index-screen { background: linear-gradient(180deg, #2fd6b4, #1b8f9a) !important; }
+.screen-header { border-bottom: 4px dashed rgba(255,255,255,.35) !important; }
+.inv-title-text { color: var(--gold) !important; -webkit-text-stroke: 4px var(--ink); paint-order: stroke fill; text-shadow: 0 4px 0 var(--ink); }
+
+/* animation d'ouverture qui rebondit */
+@keyframes cartoonPop { 0% { opacity: 0; transform: translateY(26px) scale(.82); } 60% { opacity: 1; transform: translateY(-6px) scale(1.03); } 100% { opacity: 1; transform: none; } }
+#inventory-screen, #shop-screen, #index-screen, #trade-screen, .sell-box, .confirm-box, #autosell-modal > div { animation: cartoonPop .4s cubic-bezier(.3,1.3,.5,1) !important; }
+
+/* barre de défilement */
+#inventory-grid::-webkit-scrollbar, #shop-grid::-webkit-scrollbar, #index-grid::-webkit-scrollbar { width: 16px; }
+#inventory-grid::-webkit-scrollbar-track, #shop-grid::-webkit-scrollbar-track, #index-grid::-webkit-scrollbar-track { background: rgba(0,0,0,.25); border-radius: 10px; }
+#inventory-grid::-webkit-scrollbar-thumb, #shop-grid::-webkit-scrollbar-thumb, #index-grid::-webkit-scrollbar-thumb { background: var(--gold); border: 3px solid var(--ink); border-radius: 10px; }
+
+/* ---------- cartes ---------- */
+.inv-item-card, .shop-item-card, .index-item-card {
+  border: 4px solid var(--ink) !important; border-radius: 26px !important; box-sizing: border-box;
+  box-shadow: 0 6px 0 var(--ink), inset 0 3px 0 rgba(255,255,255,.35) !important;
+  transition: transform .15s, box-shadow .15s;
+}
+.inv-item-card   { background: linear-gradient(180deg, #a875ff, #7c4de6) !important; }
+.shop-item-card  { background: linear-gradient(180deg, #4cc3ff, #2a7de1) !important; }
+.index-item-card { background: linear-gradient(180deg, #3fe0c4, #1fa4a8) !important; }
+.inv-item-card:hover, .shop-item-card:hover, .index-item-card:hover {
+  transform: translateY(-4px); border-color: var(--ink) !important;
+  box-shadow: 0 10px 0 var(--ink), inset 0 3px 0 rgba(255,255,255,.35) !important;
+}
+.inv-item-name, .inv-item-count, .index-item-name, .shop-item-title, .shop-item-duration { text-shadow: 0 2px 0 rgba(0,0,0,.3); }
+.shop-item-price-overlay { background: rgba(43,22,80,.55) !important; }
+#inventory-grid.selmode .inv-item-card.sel { background: linear-gradient(180deg, #7bf5a8, #2fc46f) !important; border-color: #14683a !important; }
+.sell-btn { background: #ff4d6d !important; border: 4px solid var(--ink) !important; box-sizing: border-box; box-shadow: 0 4px 0 #a3163a; }
+.sell-btn:hover { background: #ff6a85 !important; }
+
+/* ---------- boutons bombés ---------- */
+.close-screen-btn { --b: #ff4d6d; --s: #a3163a; }
+.confirm-btn.no, #inv-bar .bar-red, #autosell-modal .bar-red { --b: #ff4d6d; --s: #a3163a; }
+.confirm-btn.yes, #inv-bar .bar-green { --b: #3ddc84; --s: #1b8a4c; }
+#inv-bar .bar-blue { --b: #4dabf7; --s: #1c6bb5; }
+#inv-bar .bar-yellow { --b: #ffd23f; --s: #b88a00; color: var(--ink) !important; text-shadow: none !important; }
+#sell-modal .qty-neg { --b: #ff6b6b; --s: #b02a2a; }
+#sell-modal .qty-pos { --b: #4dabf7; --s: #1c6bb5; }
+.close-screen-btn, .confirm-btn, #inv-bar .bar-btn, #inv-bar .bar-half, #autosell-modal .bar-btn, #sell-modal .qty-btn {
+  background: var(--b) !important; color: #fff; border: 4px solid var(--ink) !important; border-radius: 18px !important;
+  box-shadow: 0 5px 0 var(--s), inset 0 3px 0 rgba(255,255,255,.4) !important; text-shadow: 0 2px 0 rgba(0,0,0,.3);
+  transition: transform .12s, box-shadow .12s, filter .12s;
+}
+.close-screen-btn:hover, .confirm-btn:hover, #inv-bar .bar-btn:hover, #inv-bar .bar-half:hover, #autosell-modal .bar-btn:hover, #sell-modal .qty-btn:hover {
+  transform: translateY(-2px); filter: brightness(1.1);
+  box-shadow: 0 7px 0 var(--s), inset 0 3px 0 rgba(255,255,255,.4) !important;
+}
+.close-screen-btn:active, .confirm-btn:active, #inv-bar .bar-btn:active, #inv-bar .bar-half:active, #autosell-modal .bar-btn:active, #sell-modal .qty-btn:active {
+  transform: translateY(4px); box-shadow: 0 1px 0 var(--s), inset 0 3px 0 rgba(255,255,255,.4) !important;
+}
+#inv-bar #split { overflow: visible !important; gap: 8px; border-radius: 0 !important; }
+#inv-bar .bar-half:disabled { filter: grayscale(.6); transform: none; }
+
+/* boutons latéraux */
+.side-btn {
+  border: 4px solid var(--ink) !important; border-radius: 22px !important; box-sizing: border-box;
+  background: linear-gradient(180deg, #f3e2ff, #c79bf5) !important;
+  box-shadow: 0 5px 0 var(--ink), inset 0 3px 0 rgba(255,255,255,.6) !important;
+  transition: transform .12s, box-shadow .12s;
+}
+.side-btn:hover  { transform: translateY(-3px) scale(1.04); box-shadow: 0 8px 0 var(--ink), inset 0 3px 0 rgba(255,255,255,.6) !important; }
+.side-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink) !important; }
+
+/* ---------- fenêtres (confirmation, vente, autosell) ---------- */
+.confirm-box, .sell-box, #autosell-modal > div {
+  background: linear-gradient(180deg, #7a4ee0, #4b2aa8) !important;
+  border: 5px solid var(--ink) !important; border-radius: 28px !important;
+  box-shadow: 0 8px 0 var(--ink-deep), 0 20px 36px rgba(0,0,0,.45), inset 0 4px 0 rgba(255,255,255,.3) !important;
+}
+.confirm-msg, .sell-box h3 { text-shadow: 0 2px 0 rgba(0,0,0,.3); }
+.sell-input { border: 4px solid var(--ink) !important; border-radius: 16px !important; background: #fff !important; color: var(--ink) !important; }
+#autosell-modal .auto-card { background: rgba(255,255,255,.15) !important; border: 4px solid var(--ink) !important; border-radius: 20px !important; box-shadow: 0 4px 0 var(--ink); }
+#autosell-modal .auto-card.on { background: linear-gradient(180deg, #7bf5a8, #2fc46f) !important; }
+#autosell-modal .auto-card.on b { color: #0d4d28; }
+
+/* ================= ÉCRAN D'ACCUEIL ================= */
+#home-screen {
+  background: radial-gradient(circle at 50% 35%, #8b5cf6 0%, #5a37c2 40%, #2a1a7a 100%) !important;
+  border: 10px solid var(--ink) !important;
+  box-shadow: inset 0 0 0 6px var(--gold) !important;
+}
+.main-title {
+  color: var(--gold) !important;
+  -webkit-text-stroke: calc(7 * var(--u)) var(--ink); paint-order: stroke fill;
+  text-shadow: 0 calc(7 * var(--u)) 0 var(--ink) !important;
+  animation: cartoonFloat 2.4s ease-in-out infinite;
+}
+@keyframes cartoonFloat { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(calc(-8 * var(--u))) rotate(1deg); } }
+
+.mode-card {
+  border: calc(7 * var(--u)) solid var(--ink) !important; border-radius: calc(32 * var(--u)) !important;
+  color: #fff !important; -webkit-text-stroke: calc(4 * var(--u)) var(--ink); paint-order: stroke fill;
+  text-shadow: 0 calc(4 * var(--u)) 0 var(--ink);
+  box-shadow: 0 calc(14 * var(--u)) 0 var(--ink-deep), inset 0 calc(6 * var(--u)) 0 rgba(255,255,255,.4) !important;
+  transition: transform .15s, box-shadow .15s, filter .15s !important;
+}
+.modes-container .mode-card:nth-child(1) { background: linear-gradient(180deg, #5ef2a5, #1fb36b) !important; }
+.modes-container .mode-card:nth-child(2) { background: linear-gradient(180deg, #ffb35e, #ff5f6d) !important; }
+.mode-card:hover {
+  transform: translateY(calc(-12 * var(--u))) scale(1.04) rotate(-1deg) !important; border-color: var(--ink) !important; filter: brightness(1.08);
+  box-shadow: 0 calc(20 * var(--u)) 0 var(--ink-deep), inset 0 calc(6 * var(--u)) 0 rgba(255,255,255,.4) !important;
+}
+.mode-card:active {
+  transform: translateY(calc(6 * var(--u))) scale(.98) !important;
+  box-shadow: 0 calc(4 * var(--u)) 0 var(--ink-deep), inset 0 calc(6 * var(--u)) 0 rgba(255,255,255,.4) !important;
+}
+
+.bottom-action-btn { border: calc(5 * var(--u)) solid var(--ink) !important; box-shadow: 0 calc(6 * var(--u)) 0 var(--ink) !important; box-sizing: border-box; }
+.bottom-action-btn:active { transform: translateY(calc(4 * var(--u))) !important; }
+.discord-btn-left { background: linear-gradient(180deg, #8da0ff, #5865f2) !important; }
+.logo-placeholder img { filter: drop-shadow(0 calc(5 * var(--u)) 0 var(--ink)); }
+#account-settings-btn img { filter: drop-shadow(0 3px 0 var(--ink)); }
+
+.lang-sw { border: 4px solid var(--ink) !important; border-radius: 16px !important; background: rgba(255,255,255,.3) !important; box-shadow: 0 4px 0 var(--ink); }
+.lang-btn { border: 3px solid var(--ink) !important; }
+.lang-btn.on { box-shadow: inset 0 0 0 3px var(--gold) !important; }
+
+#leave-game-btn { background: linear-gradient(180deg, #ffe066, #ffb703) !important; border: 4px solid var(--ink) !important; color: var(--ink) !important; box-shadow: 0 5px 0 var(--ink) !important; }
+#leave-game-btn:hover { background: linear-gradient(180deg, #fff0a0, #ffc933) !important; }
