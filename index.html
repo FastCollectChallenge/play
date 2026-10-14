@@ -7,7 +7,7 @@
     <link rel="icon" href="/Fast Collect Challenge Title logo.png" type="image/png">
     <title>Fast Collect Challenge</title>
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;700;900&family=Press+Start+2P&family=Source+Sans+3:wght@600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;700;900&family=Inter:wght@400;500;600;700;800&family=Press+Start+2P&family=Source+Sans+3:wght@600&display=swap" rel="stylesheet">
     <style>
         * { font-family: 'Press Start 2P', cursive !important; font-synthesis: none; }
         /* Le panneau des spawns garde la police normale */
@@ -202,7 +202,203 @@
         #account-settings-btn:hover { background: transparent; }
         #account-settings-btn img { width: 100%; height: 100%; object-fit: contain; display: block; }
     </style>
-    <link rel="stylesheet" href="cartoon-theme.css">
+    <style id="modern-theme">
+/* ===================== THEME MODERNE =====================
+   Modifie les variables ci-dessous pour changer toute la palette. */
+:root {
+    --bg: #0a0d14;
+    --surface: rgba(255, 255, 255, 0.06);
+    --surface-hover: rgba(255, 255, 255, 0.10);
+    --glass: rgba(12, 16, 26, 0.72);
+    --border: rgba(255, 255, 255, 0.10);
+    --text: #e8ecf4;
+    --muted: #8b95a8;
+    --accent: #7c5cff;
+    --accent-2: #22d3ee;
+    --money: #34d399;
+    --danger: #f43f5e;
+}
+
+/* ---------- Police ---------- */
+*, *::before, *::after { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif !important; }
+.main-title, .mode-card, .inv-title-text, #spawn-panel, #spawn-panel *, .admin-msg {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif !important;
+}
+
+body {
+    background: radial-gradient(1000px 600px at 20% 0%, rgba(124, 92, 255, 0.12), transparent 60%), var(--bg);
+    color: var(--text);
+    letter-spacing: -0.01em;
+}
+
+/* ---------- Scores (arcade) ---------- */
+#score, #timer-display {
+    font-size: 15px; font-weight: 700; text-shadow: none;
+    background: var(--glass); border: 1px solid var(--border); border-radius: 12px;
+    padding: 10px 16px; backdrop-filter: blur(12px);
+}
+
+/* ---------- Écran d'accueil ---------- */
+#home-screen {
+    border: none;
+    background:
+        radial-gradient(1200px 700px at 15% 10%, rgba(124, 92, 255, 0.22), transparent 60%),
+        radial-gradient(900px 600px at 90% 90%, rgba(34, 211, 238, 0.16), transparent 60%),
+        linear-gradient(180deg, #0a0d14, #0d1220);
+}
+#dvdCanvas { opacity: 0.35; }
+
+.logo-placeholder {
+    background: var(--surface); border: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+}
+.main-title {
+    font-weight: 800; letter-spacing: -0.03em; text-transform: none;
+    font-size: calc(44 * var(--u));
+    background: linear-gradient(90deg, #ffffff, #a5b4fc 50%, #67e8f9);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; text-shadow: none;
+}
+
+.mode-card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+    border: 1px solid var(--border);
+    border-radius: calc(24 * var(--u));
+    color: var(--text); font-weight: 700; font-size: calc(24 * var(--u)); line-height: 1.35; letter-spacing: 0.02em;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(14px);
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+}
+.mode-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(124, 92, 255, 0.7);
+    background: linear-gradient(145deg, rgba(124, 92, 255, 0.24), rgba(34, 211, 238, 0.08));
+    box-shadow: 0 24px 60px rgba(124, 92, 255, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
+
+#account-settings-btn:hover { transform: rotate(45deg) scale(1.05); }
+
+.discord-btn-left {
+    background-color: var(--surface); border: 1px solid var(--border);
+    backdrop-filter: blur(10px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.discord-btn-left:hover { background-color: rgba(124, 92, 255, 0.3); border-color: rgba(124, 92, 255, 0.6); }
+
+/* ---------- Bouton Leave ---------- */
+#leave-game-btn {
+    background: var(--glass); border: 1px solid var(--border); color: var(--text);
+    backdrop-filter: blur(10px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+#leave-game-btn:hover { background: rgba(244, 63, 94, 0.2); border-color: rgba(244, 63, 94, 0.6); }
+#leave-game-btn .leave-label { font-size: 11px; font-weight: 600; }
+
+/* ---------- Boutons latéraux ---------- */
+.side-btn {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
+    backdrop-filter: blur(12px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    transition: transform 0.2s, background 0.2s, border-color 0.2s;
+}
+.side-btn:hover { background: rgba(124, 92, 255, 0.28); border-color: rgba(124, 92, 255, 0.6); transform: translateX(4px) scale(1.04); }
+.side-btn img { filter: brightness(0) invert(1); opacity: 0.9; }
+.side-btn .side-btn-label { color: var(--text); font-size: 11px; font-weight: 600; }
+
+/* ---------- Argent ---------- */
+#money-display {
+    color: var(--money); font-size: 38px; font-weight: 800; letter-spacing: -0.02em;
+    -webkit-text-stroke: 0; text-shadow: 0 0 24px rgba(52, 211, 153, 0.35);
+    background: var(--glass); border: 1px solid var(--border); border-radius: 16px;
+    padding: 10px 20px; backdrop-filter: blur(10px);
+}
+
+/* ---------- Panneaux plein écran (Inventory / Shop / Index) ---------- */
+#inventory-screen, #shop-screen, #index-screen {
+    background: rgba(10, 13, 20, 0.80); border: 1px solid var(--border); border-radius: 24px;
+    backdrop-filter: blur(24px) saturate(140%); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+.screen-header { border-bottom: 1px solid var(--border); }
+.inv-title-text { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
+.money-badge {
+    background: rgba(52, 211, 153, 0.12); color: var(--money); border: 1px solid rgba(52, 211, 153, 0.35);
+    box-shadow: none; font-size: 14px; font-weight: 700; padding: 8px 20px; border-radius: 999px;
+}
+.close-screen-btn {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    font-size: 12px; font-weight: 600; border-radius: 10px; padding: 9px 16px; transition: background 0.2s, border-color 0.2s;
+}
+.close-screen-btn:hover { background: rgba(244, 63, 94, 0.22); border-color: rgba(244, 63, 94, 0.5); }
+
+.tab-btn {
+    background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+    font-size: 12px; font-weight: 600; border-radius: 999px; padding: 8px 18px;
+}
+.tab-btn:hover { color: var(--text); background: var(--surface-hover); }
+.tab-btn.active { background: var(--accent); border-color: transparent; color: #fff; box-shadow: 0 6px 20px rgba(124, 92, 255, 0.4); }
+
+#inventory-grid, #shop-grid, #index-grid { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.2) transparent; }
+
+/* ---------- Inventaire ---------- */
+.inv-item-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; }
+.inv-item-card:hover { background: var(--surface-hover); border-color: rgba(124, 92, 255, 0.5); transform: translateY(-2px); }
+.inv-item-name { font-size: 13px; font-weight: 600; line-height: 1.3; }
+.inv-item-rarity { font-size: 10px; font-weight: 700; }
+.inv-item-count { font-size: 13px; color: var(--muted); }
+.sell-btn { background: var(--danger); }
+.sell-btn:hover { background: #fb5272; }
+
+.rarity-common { color: #4ade80; }
+.rarity-rare { color: #60a5fa; }
+.rarity-epic { color: #c084fc; }
+
+/* ---------- Index ---------- */
+.index-item-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; }
+.index-item-name { font-size: 13px; font-weight: 600; }
+.apple-rarity { font-size: 10px; font-weight: 700; margin-top: -2px; }
+
+/* ---------- Boutique ---------- */
+.shop-item-card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+    border: 1px solid var(--border); border-radius: 20px;
+    transition: border-color 0.2s, transform 0.2s;
+}
+.shop-item-card:hover { border-color: rgba(124, 92, 255, 0.6); transform: translateY(-3px); }
+.shop-item-title { font-size: 13px; font-weight: 700; }
+.shop-item-duration { font-size: 12px; font-weight: 500; color: var(--muted); }
+.shop-item-price-overlay { font-size: 18px; font-weight: 800; color: var(--money); background: rgba(10, 13, 20, 0.55); }
+
+/* ---------- Modales ---------- */
+#custom-confirm-modal, #sell-modal, #account-modal { background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(6px); }
+.confirm-box, .sell-box, #account-panel {
+    background: rgba(17, 22, 35, 0.94); border: 1px solid var(--border); border-radius: 20px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+.confirm-msg { font-size: 14px; font-weight: 600; line-height: 1.6; }
+.confirm-btn { font-size: 12px; font-weight: 600; border-radius: 10px; padding: 10px 24px; }
+.confirm-btn.yes { background: var(--accent); }
+.confirm-btn.yes:hover { background: #6d4cf0; }
+.confirm-btn.no { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.confirm-btn.no:hover { background: rgba(244, 63, 94, 0.25); }
+
+.sell-box h3 { font-size: 15px; font-weight: 700; }
+.sell-input { background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border); border-radius: 10px; font-size: 14px; color: var(--text); }
+.sell-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.25); }
+.sell-hint { font-size: 11px; font-style: normal; color: var(--muted); }
+
+#account-select { background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border); font-size: 13px; border-radius: 10px; }
+.acc-btn { background: var(--accent); font-size: 12px; font-weight: 600; border-radius: 8px; padding: 8px 14px; }
+.acc-btn:hover { background: #6d4cf0; }
+.acc-btn.danger { background: rgba(244, 63, 94, 0.85); }
+.acc-btn.danger:hover { background: var(--danger); }
+
+/* ---------- HUD : événements & spawns ---------- */
+.event-card { background: var(--glass); border: 1px solid var(--border); border-radius: 16px; backdrop-filter: blur(12px); }
+.event-timer { font-size: 13px; font-weight: 700; }
+#spawn-panel {
+    background: var(--glass); border: 1px solid var(--border); border-radius: 16px;
+    backdrop-filter: blur(12px); font-size: 13px; padding: 8px 16px;
+}
+.spawn-label { color: var(--muted); font-weight: 500; }
+
+    </style>
 </head>
 <body>
 
@@ -219,14 +415,14 @@
                 <div class="mode-card" onclick="startGame()">ARCADE<br>MODE</div>
             </div>
             <a href="https://discord.gg/52UY26TBQF" target="_blank" class="bottom-action-btn discord-btn-left">
-                <img src="https://i.pinimg.com/originals/50/5c/7f/505c7fdb81893aa475d88543b6b93d61.jpg" alt="Discord">
+                <img src="Discord.png" alt="Discord">
             </a>
         </div>
     </div>
 
     <div id="account-modal">
         <div id="account-panel">
-            <div style="font-weight: 700; font-size: 11px; color: #7ed6df;">👤 ADVENTURE ACCOUNTS</div>
+            <div style="font-weight: 700; font-size: 14px; color: #a5b4fc;">👤 ADVENTURE ACCOUNTS</div>
             <select id="account-select" onchange="switchAccount(this.value)"></select>
             <div style="margin-bottom: 15px;">
                 <button class="acc-btn" onclick="createNewAccount()">+ New</button>
@@ -269,16 +465,16 @@
     <div id="shop-screen">
         <div class="screen-header">
             <div class="money-badge">$ <span id="shop-money-counter">0</span></div>
-            <h2 class="inv-title-text" style="color: #f1c40f;">🏪 SHOP</h2>
+            <h2 class="inv-title-text">🏪 SHOP</h2>
             <button class="close-screen-btn" onclick="toggleShop(false)">Close ✖</button>
         </div>
-        <div style="font-family: 'Press Start 2P', cursive !important; font-size: 16px; text-align: center; margin-bottom: 20px; color: #7ed6df;">Luck Potions</div>
+        <div style="font-size: 15px; font-weight: 600; text-align: center; margin-bottom: 20px; color: #a5b4fc;">Luck Potions</div>
         <div id="shop-grid"></div>
     </div>
 
     <div id="index-screen">
         <div class="screen-header">
-            <h2 class="inv-title-text" style="color: #f1c40f;">📖 INDEX</h2>
+            <h2 class="inv-title-text">📖 INDEX</h2>
             <button class="close-screen-btn" onclick="toggleIndex(false)">Close ✖</button>
         </div>
         <div id="index-grid"></div>
