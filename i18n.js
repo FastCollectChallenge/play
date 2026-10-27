@@ -3,7 +3,7 @@
   let lang = localStorage.getItem("fc_lang") || "en";
   const $ = id => document.getElementById(id);
   const S = document.createElement("style");
-  S.textContent = `.rb,.rb *,.admin-msg,.admin-msg *{font-family:'Nunito',sans-serif!important;font-weight:700!important}
+  S.textContent = `.rb,.rb *,.admin-msg,.admin-msg *{font-family:'Inter', sans-serif!important;font-weight:700!important}
   .lang-sw{display:flex;gap:3px;padding:4px;border:2px dotted #f1c40f;border-radius:12px;background:rgba(0,0,0,.35);position:absolute;z-index:20;--ls:30px}
   .lang-btn{width:var(--ls);height:var(--ls);padding:0;border:2px solid #f1c40f;background:#000;cursor:pointer;overflow:hidden;position:relative;display:block}
   .lang-btn{border-radius:8px}

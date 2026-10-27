@@ -32,7 +32,7 @@
     .wf-card img{width:40px;height:40px;object-fit:contain;-webkit-user-drag:none}
     .wf-empty{width:100%;text-align:center;font-size:11px;color:#cbbbe6;padding:0 10px}
     @keyframes wf-scroll{to{transform:translateX(-50%)}}
-    #wf-title{position:absolute;left:0;right:0;bottom:calc(50vh + 26px);text-align:center;white-space:pre-wrap;font-family:'Press Start 2P',cursive;font-size:clamp(16px,3.6vw,44px);line-height:1.4;opacity:0;-webkit-text-stroke:3px #f4ecff;paint-order:stroke fill;text-shadow:0 4px 0 rgba(0,0,0,.35)}
+    #wf-title{position:absolute;left:0;right:0;bottom:calc(50vh + 26px);text-align:center;white-space:pre-wrap;font-family:'Inter', sans-serif;font-size:clamp(16px,3.6vw,44px);line-height:1.4;opacity:0;-webkit-text-stroke:3px #f4ecff;paint-order:stroke fill;text-shadow:0 4px 0 rgba(0,0,0,.35)}
     #wf-machine{position:absolute;left:50%;bottom:0;height:50vh;max-width:90vw;object-fit:contain;object-position:bottom;transform:translate(-50%,105%);pointer-events:none;transition:filter .15s}
     #wf-machine.drop{filter:drop-shadow(0 0 24px #e0c2ff) drop-shadow(0 0 6px #fff)}
     #wf-dim.go #wf-machine{animation:wf-rise 1.6s cubic-bezier(.2,.8,.25,1) forwards}

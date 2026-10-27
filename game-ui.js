@@ -6,7 +6,7 @@
   const PRICE = { red: 1, green: 3, golden: 7, diamond: 15, candy: 50, lava: 200, galaxy: 500, dark: 1000, moony: 50000, salhini: 100000000, bloodmoon: 6666666 };
   if (typeof NEW_APPLES !== "undefined") Object.keys(NEW_APPLES).forEach(k => { PRICE[k] = NEW_APPLES[k].price; });
   const css = document.createElement("style");
-  css.textContent = `.nun,.nun *{font-family:'Nunito',sans-serif!important;font-weight:700!important}
+  css.textContent = `.nun,.nun *{font-family:'Inter', sans-serif!important;font-weight:700!important}
   .logo-placeholder{border:none!important;background:none!important;padding:0!important}
   #inv-btn .side-btn-label{font-size:6px!important}
   #shop-btn .side-btn-label,#index-btn .side-btn-label,#trade-btn .side-btn-label{font-size:10px!important}
