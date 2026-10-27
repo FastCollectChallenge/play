@@ -402,15 +402,16 @@ body {
 .spawn-label { color: var(--muted); font-weight: 500; }
 
 /* ===== Panneaux en haut à gauche / droite ===== */
-.top-panel { position: fixed; top: calc(32 * var(--u)); z-index: 5; display: flex; align-items: center; justify-content: center;
-  height: calc(141 * var(--u)); border-radius: calc(32 * var(--u)); background: rgba(255,255,255,.85); backdrop-filter: blur(10px); }
-#top-left-panel { left: calc(32 * var(--u)); width: calc(281 * var(--u)); gap: calc(26 * var(--u)); }
-#top-right-panel { right: calc(38 * var(--u)); width: calc(141 * var(--u)); flex-direction: column; gap: calc(12 * var(--u)); }
-.tp-col { display: flex; flex-direction: column; gap: calc(14 * var(--u)); }
-.tp-joy { width: calc(85 * var(--u)); height: calc(85 * var(--u)); object-fit: contain; cursor: default; }
-.tp-ico { width: calc(36 * var(--u)); height: calc(36 * var(--u)); object-fit: contain; display: block; cursor: pointer; }
-.tp-sep-v { width: calc(2 * var(--u)); height: calc(62 * var(--u)); background: #000; }
-.tp-sep-h { width: calc(62 * var(--u)); height: calc(2 * var(--u)); background: #000; }
+.top-panel { position: fixed; top: calc(20 * var(--u)); z-index: 5; display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+  height: calc(64 * var(--u)); border-radius: calc(18 * var(--u)); background: rgba(61,59,95,.85);
+  border: 1px solid rgba(255,255,255,.12); box-shadow: 0 6px 18px rgba(0,0,0,.35); backdrop-filter: blur(10px); }
+#top-left-panel { left: calc(20 * var(--u)); width: calc(150 * var(--u)); gap: calc(18 * var(--u)); }
+#top-right-panel { right: calc(20 * var(--u)); width: calc(64 * var(--u)); flex-direction: column; gap: calc(6 * var(--u)); }
+.tp-col { display: flex; flex-direction: column; gap: calc(8 * var(--u)); }
+.tp-joy { width: calc(40 * var(--u)); height: calc(40 * var(--u)); object-fit: contain; cursor: default; }
+.tp-ico { width: calc(20 * var(--u)); height: calc(20 * var(--u)); object-fit: contain; display: block; cursor: pointer; filter: invert(1); }
+.tp-sep-v { width: calc(2 * var(--u)); height: calc(40 * var(--u)); background: #fff; }
+.tp-sep-h { width: calc(32 * var(--u)); height: calc(2 * var(--u)); background: #fff; }
 
     </style>
 </head>
