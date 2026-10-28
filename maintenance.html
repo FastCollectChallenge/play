@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fast Collect Challenge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Google Sans', sans-serif !important;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(1200px 700px at 15% 10%, rgba(124, 92, 255, 0.22), transparent 60%),
+                        radial-gradient(900px 600px at 90% 90%, rgba(34, 211, 238, 0.16), transparent 60%),
+                        linear-gradient(180deg, #0a0d14, #0d1220);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Rubrique du haut sur toute la longueur */
+        .top-panel-full {
+            width: calc(100% - 36px);
+            margin-top: 18px;
+            height: 70px;
+            background: rgba(61, 59, 95, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            padding: 0 22px;
+            gap: 18px;
+        }
+
+        .logo-img {
+            height: 42px;
+            width: 42px;
+            object-fit: contain;
+        }
+
+        .vertical-sep {
+            width: 2px;
+            height: 38px;
+            background-color: rgba(255, 255, 255, 0.6);
+            border-radius: 2px;
+        }
+
+        .links-col {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .nav-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 700;
+            transition: opacity 0.2s;
+        }
+
+        .nav-row:hover {
+            opacity: 0.85;
+        }
+
+        .nav-icon {
+            width: 18px;
+            height: 18px;
+            object-fit: contain;
+            filter: invert(1);
+            transition: transform 0.2s ease;
+        }
+
+        .nav-row:hover .nav-icon {
+            transform: scale(1.25);
+        }
+
+        /* Conteneur principal au centre */
+        .main-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+            text-align: center;
+            gap: 14px;
+            padding: 0 20px;
+        }
+
+        .title-logo {
+            height: 44px;
+            width: 44px;
+            object-fit: contain;
+        }
+
+        /* Taille intermédiaire à 38px */
+        .title-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 38px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .gradient-title {
+            background: linear-gradient(90deg, #ffffff 0%, #c1c2ff 30%, #8ca5ff 65%, #6fe3ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+
+        .maintenance-white {
+            color: #ffffff;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Rubrique sur toute la longueur de l'écran -->
+    <div class="top-panel-full">
+        <img class="logo-img" src="Fast Collect Challenge NBG Logo.png" alt="Logo" onerror="this.src='https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge%20NBG%20logo.png'">
+        
+        <span class="vertical-sep"></span>
+        
+        <div class="links-col">
+            <a class="nav-row" href="privacy-policy.html">
+                <img class="nav-icon" src="Privacy Policy Dark Mode.png" alt="" onerror="this.src='https://raw.githubusercontent.com/FastCollectChallenge/play/main/Privacy%20Policy%20Dark%20Mode.png'">
+                <span>Privacy Policy</span>
+            </a>
+            <a class="nav-row" href="https://discord.gg/52UY26TBQF" target="_blank">
+                <img class="nav-icon" src="Discord Dark Mode.png" alt="" onerror="this.src='https://raw.githubusercontent.com/FastCollectChallenge/play/main/Discord%20Dark%20Mode.png'">
+                <span>Join our Discord</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Contenu central -->
+    <div class="main-container">
+        <img class="title-logo" src="Fast Collect Challenge NBG Logo.png" alt="Logo" onerror="this.src='https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge%20NBG%20logo.png'">
+        
+        <div class="title-line">
+            <span class="gradient-title">Fast Collect Challenge</span>
+            <span class="maintenance-white">is down for maintenance :'(</span>
+        </div>
+    </div>
+
+</body>
+</html>
