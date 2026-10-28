@@ -410,8 +410,10 @@ body {
                 <h1 class="main-title">Fast Collect Challenge</h1>
             </div>
             <div class="modes-container">
-                <div class="mode-card" onclick="startAdventure()"><img class="mc-ico" src="https://raw.githubusercontent.com/FastCollectChallenge/play/main/Adventure%20Mode%20Compass%20Dark%20Mode.png" alt=""><span class="mc-sep"></span><span class="mc-text">Adventure<br>Mode</span></div>
-<div class="mode-card" onclick="startGame()"><img class="mc-ico" src="https://raw.githubusercontent.com/FastCollectChallenge/play/main/Arcade%20Mode%20Timer%20Dark%20Mode.png" alt=""><span class="mc-sep"></span><span class="mc-text">Arcade<br>Mode</span></div>
+                <div class="mode-card" onclick="startAdventure()"><span class="mc-text">Adventure<br>Mode</span><img class="mc-ico" src="https://raw.githubusercontent.com/FastCollectChallenge/play/main/Adventure%20Mode%20Compass%20Dark%20Mode.png" alt=""></div>
+                <div class="mode-card" onclick="startGame()"><span class="mc-text">Arcade<br>Mode</span><img class="mc-ico" src="https://raw.githubusercontent.com/FastCollectChallenge/play/main/Arcade%20Mode%20Timer%20Dark%20Mode.png" alt=""></div>
+            </div>
+        </div>
     </div>
 
     <div id="account-modal">
@@ -510,7 +512,7 @@ body {
 
     <script>
         const MY_CLIENT_ID = 'p_' + Math.random().toString(36).slice(2, 10);
-        const ably = new Ably.Realtime({ key: 'bZFMkw.c4CcvA:p68kSKR0er684kwyolnwIhYxTf0e4ed5NDanEKxGxGo', clientId: MY_CLIENT_ID });
+        const ably = new Ably.Realtime({ key: 'COLLE_ICI_TA_CLE_CLIENT_READONLY', clientId: MY_CLIENT_ID });
         const channel = ably.channels.get('admin-commands');
         function setMode(mode) { window.__fcMode = mode;
             try { channel.presence.update({ mode: mode, user: window.__fcUser || '' }, function(err){ if (err) console.error('[Fast Collect] presence failed:', err.message || err); else console.log('[Fast Collect] presence OK as', MY_CLIENT_ID, '-', mode); }); } catch(e) { console.error(e); }
