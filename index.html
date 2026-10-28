@@ -46,7 +46,7 @@
         .apple-rarity { font-size: 7px; font-weight: 900; text-align: center; margin-top: -7px; letter-spacing: .4px; }
         .inv-item-details { display:flex; flex-direction:column; gap:4px; min-width:0; }
         .inv-item-name { font-size:8px; line-height:1.5; overflow-wrap:anywhere; }
-        .inv-item-rarity { font-size:6px; font-weight:900; }
+        .inv-item-rarity { font-size:6px; font-weight:900; } 
         .rarity-common { color:#145A32; } .rarity-rare { color:#3498DB; } .rarity-epic { color:#B45BDE; }
         .rarity-godly { background:linear-gradient(90deg,#ff4242,#ffb52e,#fff15a,#47e66b,#48a9ff,#b75cff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
         .rarity-secret { color:#000; -webkit-text-fill-color:#000; background:none; text-shadow:1px 0 #fff,-1px 0 #fff,0 1px #fff,0 -1px #fff,1px 1px #fff,-1px -1px #fff,1px -1px #fff,-1px 1px #fff; }
@@ -512,7 +512,7 @@ body {
 
     <script>
         const MY_CLIENT_ID = 'p_' + Math.random().toString(36).slice(2, 10);
-        const ably = new Ably.Realtime({ key: 'COLLE_ICI_TA_CLE_CLIENT_READONLY', clientId: MY_CLIENT_ID });
+        const ably = new Ably.Realtime({ key: 'bZFMkw.c4CcvA:p68kSKR0er684kwyolnwIhYxTf0e4ed5NDanEKxGxGo', clientId: MY_CLIENT_ID });
         const channel = ably.channels.get('admin-commands');
         function setMode(mode) { window.__fcMode = mode;
             try { channel.presence.update({ mode: mode, user: window.__fcUser || '' }, function(err){ if (err) console.error('[Fast Collect] presence failed:', err.message || err); else console.log('[Fast Collect] presence OK as', MY_CLIENT_ID, '-', mode); }); } catch(e) { console.error(e); }
