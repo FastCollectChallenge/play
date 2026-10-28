@@ -510,7 +510,7 @@ body {
 
     <script>
         const MY_CLIENT_ID = 'p_' + Math.random().toString(36).slice(2, 10);
-        const ably = new Ably.Realtime({ key: 'bZFMkw.u1oLTg:xhXyW5SeGGYAmDyoGjYDfkbodtDNkZcEMXw11__DDxM', clientId: MY_CLIENT_ID });
+        const ably = new Ably.Realtime({ key: 'bZFMkw.c4CcvA:p68kSKR0er684kwyolnwIhYxTf0e4ed5NDanEKxGxGo', clientId: MY_CLIENT_ID });
         const channel = ably.channels.get('admin-commands');
         function setMode(mode) { window.__fcMode = mode;
             try { channel.presence.update({ mode: mode, user: window.__fcUser || '' }, function(err){ if (err) console.error('[Fast Collect] presence failed:', err.message || err); else console.log('[Fast Collect] presence OK as', MY_CLIENT_ID, '-', mode); }); } catch(e) { console.error(e); }
