@@ -1,8 +1,8 @@
 // game-ui.js : logos, popups sans pause, Échap / clic extérieur, Select apples to sell, Autosell, +$
 (function () {
   const $ = id => document.getElementById(id);
-  const TITLE_LOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge%20Title%20logo.png";
-  const LOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge%20Ingame%20logo.png";
+  const TITLE_LOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/icons/Fast%20Collect%20Challenge%20NBG%20logo.png";
+  const LOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/icons/Fast%20Collect%20Challenge%20NBG%20logo.png";
   const PRICE = { red: 1, green: 3, golden: 7, diamond: 15, candy: 50, lava: 200, galaxy: 500, dark: 1000, moony: 50000, salhini: 100000000, bloodmoon: 6666666 };
   if (typeof NEW_APPLES !== "undefined") Object.keys(NEW_APPLES).forEach(k => { PRICE[k] = NEW_APPLES[k].price; });
   const css = document.createElement("style");

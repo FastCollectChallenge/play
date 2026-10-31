@@ -16,7 +16,7 @@ const app = initializeApp({
 const auth = getAuth(app);
 const $ = id => document.getElementById(id);
 const FAKE = "@fastcollect.app";
-const LOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge%20Ingame%20logo.png";
+const LOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/icons/Fast%20Collect%20Challenge%20NBG%20logo.png";
 const clean = s => (s || "").trim().toLowerCase();
 const okName = s => /^[a-z0-9_]{3,16}$/.test(s);
 const T = s => (window.T ? window.T(s) : s);
@@ -176,7 +176,7 @@ const warnOv = document.createElement("div"); warnOv.id = "warn-ov";
 warnOv.innerHTML = `<div id="warn-box"></div>`;
 document.body.appendChild(warnOv);
 warnOv.addEventListener("mousedown", e => { if (e.target === warnOv && !banUntil) warnOv.style.display = "none"; }); // clic en dehors = ferme (impossible pendant un ban)
-const WLOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge%20NBG%20logo.png";
+const WLOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/icons/Fast%20Collect%20Challenge%20NBG%20logo.png";
 const WNAME = `<span class="wn"><img src="${WLOGO}" alt="">Fast Collect Challenge</span>`;
 let lastWarn = 0;
 let banUntil = 0, banTimer = null, srvOff = 0;
@@ -319,7 +319,7 @@ ov.innerHTML = `<div style="width:48%;padding:0 3%;box-sizing:border-box;display
 <div class="rb" style="width:52%;display:flex;justify-content:center"><div style="width:360px;display:flex;flex-direction:column;gap:14px">
 <input id="au-name" style="${inp}" placeholder="Username or email"><input id="au-pw" type="password" style="${inp}" placeholder="Password (6+ chars)">
 <button id="au-main" style="padding:13px;border:0;border-radius:50px;background:#f1c40f;color:#000;font-size:15px;font-weight:700;cursor:pointer">Log in</button>
-<div id="au-social" style="display:flex;flex-direction:column;gap:14px">${sBtn("au-google", "https://png.pngtree.com/png-vector/20230817/ourmid/pngtree-google-logo-vector-png-image_9183290.png", "Log-in with Google")}${sBtn("au-github", "https://cdn-icons-png.flaticon.com/512/25/25231.png", "Log-in with Github")}<a id="au-guest" href="#" style="color:#aaa;text-align:center;font-size:13px">Play as guest</a></div>
+<div id="au-social" style="display:flex;flex-direction:column;gap:14px">${sBtn("au-google", "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/3840px-Google_%22G%22_logo.svg.png?utm_source=fr.wikipedia.org&utm_campaign=index&utm_content=thumbnail", "Log-in with Google")}${sBtn("au-github", "https://cdn-icons-png.flaticon.com/512/25/25231.png", "Log-in with Github")}<a id="au-guest" href="#" style="color:#aaa;text-align:center;font-size:13px">Play as guest</a></div>
 <div id="au-err" style="color:#ff6b6b;font-size:13px;min-height:16px;text-align:center"></div></div></div>`;
 const boot = document.createElement("div"); // écran de chargement pendant la connexion automatique
 boot.id = "boot-screen";
@@ -370,7 +370,7 @@ $("au-github").onclick = () => social(GithubAuthProvider);
 $("au-guest").onclick = e => { e.preventDefault(); signInAnonymously(auth).catch(err); };
 
 /* ---------- profil ---------- */
-const AV0 = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge.png";
+const AV0 = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/icons/Favicon.png";
 const pf = document.createElement("div"); pf.id = "profile-page";
 pf.style.cssText = "position:fixed;inset:0;z-index:9100;background:#000;border:10px solid #f1c40f;box-sizing:border-box;display:none;align-items:center;color:#f1c40f";
 pf.innerHTML = `<div style="width:48%;padding:0 3%;box-sizing:border-box;display:flex;flex-direction:row;align-items:center;gap:24px"><img src="${LOGO}" style="width:120px;height:120px;object-fit:contain;flex:none"><div style="font-size:40px;line-height:1.5;text-transform:uppercase;text-shadow:4px 4px 0 #333">Fast Collect Challenge</div></div>
