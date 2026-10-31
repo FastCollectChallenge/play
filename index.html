@@ -184,6 +184,7 @@
         #account-settings-btn { background: transparent; border: none; box-shadow: none; padding: 0; overflow: visible; }
         #account-settings-btn:hover { background: transparent; }
         #account-settings-btn img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
         .home-disclaimer {
     position: absolute;
     bottom: 20px;
@@ -211,7 +212,19 @@
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+
+#auth-screen,#boot-screen,#profile-page{background:radial-gradient(1200px 700px at 15% 10%,rgba(124,92,255,.22),transparent 60%),radial-gradient(900px 600px at 90% 90%,rgba(34,211,238,.16),transparent 60%),linear-gradient(180deg,#0a0d14,#0d1220)!important;border:none!important;color:#e8ecf4!important}
+#auth-screen>div:first-child>div,#profile-page>div:first-child>div{font-family:'Inter',sans-serif!important;font-weight:800;letter-spacing:-.03em;text-transform:none!important;text-shadow:none!important;background:linear-gradient(90deg,#fff,#a5b4fc 50%,#67e8f9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+#auth-screen input,#profile-page input{background:rgba(255,255,255,.06)!important;border:1px solid rgba(255,255,255,.15)!important;border-radius:12px!important;font-family:'Inter',sans-serif}
+#auth-screen input:focus,#profile-page input:focus{outline:none;border-color:#7c5cff!important;box-shadow:0 0 0 3px rgba(124,92,255,.25)}
+#au-main,#pf-ok{background:linear-gradient(135deg,#7c5cff,#22d3ee)!important;color:#fff!important}
+#au-alt{color:#a5b4fc!important}
+#pf-prev{border-color:#7c5cff!important}
+#auth-screen .lang-sw,#profile-page .lang-sw{border:1px solid rgba(255,255,255,.22)!important;background:rgba(255,255,255,.15)!important}
+#auth-screen .lang-btn,#profile-page .lang-btn{border:1px solid rgba(255,255,255,.22)!important}
+#auth-screen .lang-btn.on,#profile-page .lang-btn.on{box-shadow:inset 0 0 0 3px #7c5cff}
 }
+
     </style>
     <style id="modern-theme">
 :root {
