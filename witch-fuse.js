@@ -1,8 +1,8 @@
 // witch-fuse.js : Witch Fuse Machine (machine sur la map, popup "E", vidéo, dimension de fusion avec glisser-déposer)
   // Script classique : à charger après le script du jeu (même dossier que index.html).
   (function () {
-    const MACHINE_IMG = "Witch%20Fuze%20Machine.png";
-    const VIDEO_SRC = "Transition%20Witch%20Fuse.mp4";
+    const MACHINE_IMG = "GUI/Witch%20Fuze%20Machine.png";
+    const VIDEO_SRC = "GUI/Transition%20Witch%20Fuse.mp4";
     const TITLE = "Witch Fuse Machine";
     const LETTER_COLORS = ["#4f1c79", "#5f2687"];
     const KEYS = ["A", "Z", "E", "R"], MAX = KEYS.length;
