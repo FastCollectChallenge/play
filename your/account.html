@@ -551,9 +551,9 @@ body {
 
     <button id="leave-game-btn" onclick="leaveGame()"><span class="leave-icon">🕹️</span><span class="leave-label">Leave?</span></button>
     <div id="side-buttons">
-        <button id="inv-btn" class="side-btn" onclick="toggleInventory(true)"><img src="https://cdn-icons-png.flaticon.com/512/3313/3313637.png" alt="Inventory" onerror="this.style.display='none'; this.parentNode.classList.add('no-img')"><span class="side-btn-label">Inventory</span></button>
-        <button id="shop-btn" class="side-btn" onclick="toggleShop(true)"><img src="https://cdn-icons-png.flaticon.com/512/126/126122.png" alt="Shop" onerror="this.style.display='none'; this.parentNode.classList.add('no-img')"><span class="side-btn-label">Shop</span></button>
-        <button id="index-btn" class="side-btn" onclick="toggleIndex(true)"><img src="https://static.thenounproject.com/png/176559-200.png" alt="Index" onerror="this.style.display='none'; this.parentNode.classList.add('no-img')"><span class="side-btn-label">Index</span></button>
+        <button id="inv-btn" class="side-btn" onclick="toggleInventory(true)"><img src="icons/Inventory Dark Mode.png" alt="Inventory" onerror="this.style.display='none'; this.parentNode.classList.add('no-img')"><span class="side-btn-label">Inventory</span></button>
+        <button id="shop-btn" class="side-btn" onclick="toggleShop(true)"><img src="icons/Shop Dark Mode.png" alt="Shop" onerror="this.style.display='none'; this.parentNode.classList.add('no-img')"><span class="side-btn-label">Shop</span></button>
+        <button id="index-btn" class="side-btn" onclick="toggleIndex(true)"><img src="icons/Index Dark Mode.png" alt="Index" onerror="this.style.display='none'; this.parentNode.classList.add('no-img')"><span class="side-btn-label">Index</span></button>
     </div>
     <canvas id="gameCanvas"></canvas>
 
@@ -1007,15 +1007,15 @@ body {
             let currentStock = 0, unitPrice = 0;
             if (activeSellType === 'red') { currentStock = activeData.redApples; unitPrice = 1; }
             else if (activeSellType === 'green') { currentStock = activeData.greenApples; unitPrice = 3; }
-            else if (activeSellType === 'golden') { currentStock = activeData.goldenApples; unitPrice = 7; }
-            else if (activeSellType === 'diamond') { currentStock = activeData.diamondApples; unitPrice = 15; }
-            else if (activeSellType === 'candy') { currentStock = activeData.candyApples; unitPrice = 50; }
-            else if (activeSellType === 'lava') { currentStock = activeData.lavaApples || 0; unitPrice = 200; }
-            else if (activeSellType === 'galaxy') { currentStock = activeData.galaxyApples || 0; unitPrice = 500; }
+            else if (activeSellType === 'golden') { currentStock = activeData.goldenApples; unitPrice = 15; }
+            else if (activeSellType === 'diamond') { currentStock = activeData.diamondApples; unitPrice = 50; }
+            else if (activeSellType === 'candy') { currentStock = activeData.candyApples; unitPrice = 100; }
+            else if (activeSellType === 'lava') { currentStock = activeData.lavaApples || 0; unitPrice = 300; }
+            else if (activeSellType === 'galaxy') { currentStock = activeData.galaxyApples || 0; unitPrice = 700; }
             else if (activeSellType === 'dark') { currentStock = activeData.darkApples || 0; unitPrice = 1000; }
             else if (activeSellType === 'salhini') { currentStock = activeData.salhiniApples || 0; unitPrice = 100000000; }
             else if (activeSellType === 'bloodmoon') { currentStock = activeData.bloodmoonApples || 0; unitPrice = 6666666; }
-            else if (activeSellType === 'moony') { currentStock = activeData.moonyApples || 0; unitPrice = 50000; }
+            else if (activeSellType === 'moony') { currentStock = activeData.moonyApples || 0; unitPrice = 10000; }
 
             if (NEW_APPLES[activeSellType]) { currentStock = activeData[NEW_APPLES[activeSellType].field] || 0; unitPrice = NEW_APPLES[activeSellType].price; }
             let amountToSell = 0;

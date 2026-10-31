@@ -458,7 +458,7 @@ new MutationObserver(() => { if (pf.style.display === "none" && location.pathnam
 /* ---------- Trade : UI ---------- */
 const trBtn = document.createElement("button");
 trBtn.id = "trade-btn"; trBtn.className = "side-btn"; trBtn.style.background = "rgb(255, 255, 255)";
-trBtn.innerHTML = `<img src="https://cdn-icons-png.flaticon.com/512/3439/3439283.png" alt="Trade" onerror="this.style.display='none';this.parentNode.classList.add('no-img')"><span class="side-btn-label">Trade</span><span id="tr-badge" style="display:none;position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;line-height:20px;border-radius:10px;background:#e84118;color:#fff;font-size:9px;text-align:center"></span>`;
+trBtn.innerHTML = `<img src="icons/Trading Dark Mode.png" alt="Trade" onerror="this.style.display='none';this.parentNode.classList.add('no-img')"><span class="side-btn-label">Trade</span><span id="tr-badge" style="display:none;position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;line-height:20px;border-radius:10px;background:#e84118;color:#fff;font-size:9px;text-align:center"></span>`;
 $("side-buttons").appendChild(trBtn);
 const trStyle = document.createElement("style");
 trStyle.textContent = `@keyframes trpop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
