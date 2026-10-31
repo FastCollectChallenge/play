@@ -184,6 +184,34 @@
         #account-settings-btn { background: transparent; border: none; box-shadow: none; padding: 0; overflow: visible; }
         #account-settings-btn:hover { background: transparent; }
         #account-settings-btn img { width: 100%; height: 100%; object-fit: contain; display: block; }
+        .home-disclaimer {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.home-disclaimer img {
+    height: 14px;
+    width: auto;
+    object-fit: contain;
+}
+
+.home-disclaimer-title {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(90deg, #ffffff, #a5b4fc 50%, #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
     </style>
     <style id="modern-theme">
 :root {
@@ -392,6 +420,10 @@ body {
 <body>
 
     <div id="home-screen">
+        <div class="home-disclaimer">
+    <img src="icons/Fast%20Collect%20Challenge%20NBG%20logo.png" alt="Logo">
+    <span class="home-disclaimer-title">Fast Collect Challenge</span> is in no way affiliated with or endorsed by Google or Google Gemini.
+</div>
         <canvas id="dvdCanvas"></canvas>
         <div class="home-content">
             <div class="home-header">
