@@ -31,6 +31,7 @@
 
   /* ---------- dictionnaire ---------- */
   const EX = {
+    "Upload": "Importer",
     "Enter the fuse machine": "Entrer dans la machine de fusion",
     "to return it": "pour la ressortir", "The fuse is full": "La fuse est pleine",
     "Skull Apple": "Pomme crâne", "Poisoned Apple": "Pomme empoisonnée", "Frostfire Apple": "Pomme feu-glace", "Elixir Apple": "Pomme élixir", "Corrupted Apple": "Pomme corrompue", "Ghost Apple": "Pomme fantôme", "Sun Apple": "Pomme soleil", "FUSE": "FUSIONNER", "You got": "Tu as obtenu", "You got nothing": "Tu n'as rien obtenu",

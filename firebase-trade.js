@@ -379,7 +379,7 @@ pf.innerHTML = `<div style="width:48%;padding:0 3%;box-sizing:border-box;display
 <div class="rb" style="width:52%;display:flex;justify-content:center"><div style="width:380px;display:flex;flex-direction:column;gap:14px">
 <div id="pf-title" style="font-size:22px;font-weight:700;color:#fff;text-align:center;line-height:1.3"></div>
 <div style="display:flex;justify-content:center"><img id="pf-prev" style="width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid #f1c40f;background:#222"></div>
-<input id="pf-name" style="${inp}" placeholder="Username (3-16: a-z, 0-9, _)"><input id="pf-photo" style="${inp}" placeholder="Profile picture URL (https://...)">
+<input id="pf-name" style="${inp}" placeholder="Username (3-16: a-z, 0-9, _)"><div style="display:flex;gap:10px;align-items:stretch"><input id="pf-photo" style="${inp};min-width:0;flex:1" placeholder="Profile picture URL (https://...)"><button id="pf-upload" type="button" style="flex:none;padding:0 22px;border:0;border-radius:50px;background:#f1c40f;color:#000;font-size:15px;font-weight:700;cursor:pointer">Upload</button></div>
 <div id="pf-lang" style="display:none;align-items:center;justify-content:center;gap:12px;color:#ddd;font-size:14px"><span>Language</span></div>
 <button id="pf-ok" style="padding:13px;border:0;border-radius:50px;background:#f1c40f;color:#000;font-size:15px;font-weight:700;cursor:pointer"></button>
 <a id="pf-close" href="#" style="color:#ddd;text-align:center;font-size:13px">Close</a><a id="pf-out" href="#" style="color:#aaa;text-align:center;font-size:13px">Log out</a>
@@ -393,6 +393,7 @@ function showPrev() {
   im.src = /^https:\/\/\S+$/i.test(u) ? u : AV0;
 }
 $("pf-photo").oninput = showPrev;
+$("pf-upload").onclick = () => { location.href = "https://image-hoster.fastcollectchallenge.com"; };
 function openProfilePage({ edit, noName, name, photo, submit, cancel }) {
   let hideName = !!noName;
   $("pf-title").textContent = edit ? "Edit your profile picture" : noName ? "Choose your profile picture" : "Choose your username and profile picture";
