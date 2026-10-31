@@ -67,7 +67,14 @@
     "Request already pending": "Demande déjà en attente", "Trade request accepted": "Demande d'échange acceptée", "Trade request declined": "Demande d'échange refusée", "Select apples to sell": "Sélectionner des pommes à vendre", "Select all": "Tout sélectionner", "Sell": "Vendre", "Apples selected are sold automatically when collected": "Les pommes sélectionnées sont vendues automatiquement quand tu les ramasses",
     "Username (3-16: a-z, 0-9, _)": "Pseudo (3-16 : a-z, 0-9, _)", "Profile picture URL (https://...)": "URL de la photo de profil (https://...)",
     "Continue": "Continuer", "Save": "Enregistrer", "Log out": "Se déconnecter", "Close": "Fermer", "Import my local progress": "Importer ma progression locale",
-    "Invalid picture URL (must start with https://)": "URL de photo invalide (doit commencer par https://)"
+    "Invalid picture URL (must start with https://)": "URL de photo invalide (doit commencer par https://)",
+    "Ready": "Prêt", "Not ready": "Pas prêt", "Invalid offer": "Offre invalide",
+    "Press Ready when your offer is final": "Appuie sur Prêt quand ton offre est finale", "Both ready! Press Confirm": "Les deux sont prêts ! Appuie sur Confirmer",
+    "Server unavailable, retrying...": "Serveur indisponible, nouvelle tentative...", "Network error": "Erreur réseau",
+    "Player offline": "Joueur hors ligne", "Not enough money": "Pas assez d'argent", "Too many pending requests": "Trop de demandes en attente",
+    "Busy, retry": "Serveur occupé, réessaie", "Nothing to sell": "Rien à vendre", "Fuse full": "La fuse est pleine", "Need 4 apples": "Il faut 4 pommes",
+    "Cannot respond": "Impossible de répondre", "Trade not active": "Échange terminé", "Both must be ready": "Les deux joueurs doivent être prêts",
+    "Empty offer": "Offre vide", "That's you": "C'est toi", "Taken": "Pseudo déjà pris", "Invalid username": "Pseudo invalide"
   };
   const SN = { "Red Apples": "des pommes rouges", "Green Apples": "des pommes vertes", "Golden Apples": "des pommes dorées", "Diamond Apples": "des pommes diamant",
     "Candy Apples": "des pommes d'amour", "Lava Apples": "des pommes de lave", "Galaxy Apples": "des pommes galactiques", "Dark Apples": "des pommes noires",
@@ -78,6 +85,11 @@
     [/^⚠️SERVERS RESET IN (\d+)s$/, "⚠️RÉINITIALISATION DES SERVEURS DANS $1s"],
     [/^Sell (.+) \((\+.+)\)$/, (m, n, p) => `Vendre ${SN[n] || n} (${p})`],
     [/^You don't have enough: (.+)$/, "Tu n'as pas assez de : $1"],
+    [/^Not enough: (.+)$/, "Pas assez de : $1"],
+    [/^Waiting for (@\S+) to be ready\.\.\.$/, "En attente que $1 soit prêt..."],
+    [/^Waiting for (@\S+) to confirm\.\.\.$/, "En attente de la confirmation de $1..."],
+    [/^Completing in (\d+)s\.\.\.$/, "Fin de l'échange dans $1s..."],
+    [/^Trade with (@\S+) completed!$/, "Échange avec $1 terminé !"],
     [/^Import your local progress from "(.*)"\?$/, "Importer ta progression locale depuis « $1 » ?"]
   ];
   const tt = core => { if (Object.prototype.hasOwnProperty.call(EX, core)) return EX[core]; for (const [r, s] of RX) if (r.test(core)) return core.replace(r, s); return null; };

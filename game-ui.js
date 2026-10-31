@@ -86,8 +86,9 @@
   $("selall-btn").onclick = () => { const a = acc(); APPLE_ORDER.forEach(t => { if (a[APPLE_FIELDS[t]] > 0) selSet.add(t); }); decorate(); };
   $("bar-sell").onclick = () => {
     const a = acc(); if (!a || !selSet.size) return;
-    let gain = 0; selSet.forEach(t => { const f = APPLE_FIELDS[t]; if (!Number.isFinite(PRICE[t])) return; gain += (a[f] || 0) * PRICE[t]; a[f] = 0; });
-    a.money += gain; exitSel(); saveAllAccounts();
+    const types = [...selSet].filter(t => Number.isFinite(PRICE[t]));
+    exitSel();
+    window.FC.act("/sell-many", { types }, () => { types.forEach(t => { const f = APPLE_FIELDS[t]; a.money += (a[f] || 0) * PRICE[t]; a[f] = 0; }); }); // le serveur calcule le gain
   };
 
   /* ---------- Autosell ---------- */
@@ -105,7 +106,7 @@
       const on = !!(a.autosell && a.autosell[t]), c = document.createElement("div");
       c.className = "auto-card" + (on ? " on" : "");
       c.innerHTML = `<img src="${IMG_FRUITS[t]}"><div>${APPLE_NAMES[t]}</div><b>${on ? "ON" : "OFF"}</b>`;
-      c.onclick = () => { const b = acc(); b.autosell = { ...(b.autosell || {}), [t]: !on }; saveAllAccounts(); renderAuto(); };
+      c.onclick = () => { const b = acc(); window.FC.act("/autosell", { type: t, on: !on }, () => { b.autosell = { ...(b.autosell || {}), [t]: !on }; }); renderAuto(); };
       g.appendChild(c);
     });
   }
@@ -113,20 +114,8 @@
   $("auto-btn").onclick = () => { renderAuto(); am.style.display = "flex"; };
   $("auto-close").onclick = closeAuto;
 
-  let lastC = null, lastMoney = null;
-  const counts = a => { const c = {}; APPLE_ORDER.filter(t => t !== 'salhini').forEach(t => c[t] = a[APPLE_FIELDS[t]] || 0); return c; };
-  function autoTick() { // vend uniquement ce qui vient d'être collecté
-    const a = acc(); if (!a) return;
-    const cur = counts(a);
-    if (lastC) APPLE_ORDER.filter(t => t !== 'salhini').forEach(t => {
-      const d = cur[t] - lastC[t];
-      if (d > 0 && a.autosell && a.autosell[t] && Number.isFinite(PRICE[t])) { a[APPLE_FIELDS[t]] -= d; a.money += d * PRICE[t]; cur[t] -= d; }
-    });
-    lastC = cur;
-  }
-  window.autosellReset = () => { lastC = null; lastMoney = null; };
-  const _sv = window.saveAllAccounts;
-  window.saveAllAccounts = function () { autoTick(); return _sv.apply(this, arguments); };
+  let lastMoney = null; // la vente automatique est faite par le serveur (voir firebase-trade.js)
+  window.autosellReset = () => { lastMoney = null; };
 
   /* ---------- +$ au-dessus de l'argent ---------- */
   function moneyGain() {
@@ -142,7 +131,6 @@
     const g = $("inventory-grid"), st = g.scrollTop;
     const r = _uah.apply(this, arguments);
     g.scrollTop = st; decorate(); moneyGain();
-    if (!lastC && acc()) lastC = counts(acc());
     return r;
   };
 

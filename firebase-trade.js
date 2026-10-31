@@ -1,10 +1,10 @@
-// firebase-trade.js : comptes Firebase + sauvegarde cloud + Trade (boîte aux lettres)
+// firebase-trade.js : connexion (Firebase Auth uniquement) + API Cloudflare (économie, échanges)
+// Le serveur est maître de tout : ce fichier n'envoie que des intentions (ramassé, vendre, acheter...) et affiche ce que le serveur renvoie.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut, signInAnonymously, signInWithEmailAndPassword,
+import { getAuth, onAuthStateChanged, onIdTokenChanged, signOut, signInAnonymously, signInWithEmailAndPassword,
   createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, GithubAuthProvider, linkWithCredential, signInWithCredential } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, runTransaction, collection, query, where, onSnapshot,
-  addDoc, updateDoc, serverTimestamp, getDocs, documentId, limit, deleteField, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+const API = window.__FC_API || "https://fast-collect-challenge-api.fastcollect.workers.dev";
 const app = initializeApp({
   apiKey: "AIzaSyDVkJX-VibTIhMp_WoTqQ6LzNOy7G5OwmY",
   authDomain: "fast-collect-challenge.firebaseapp.com",
@@ -13,45 +13,300 @@ const app = initializeApp({
   messagingSenderId: "357477145806",
   appId: "1:357477145806:web:61e4d434124a461343849f"
 });
-const auth = getAuth(app), db = getFirestore(app);
+const auth = getAuth(app);
 const $ = id => document.getElementById(id);
 const FAKE = "@fastcollect.app";
 const LOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge%20Ingame%20logo.png";
 const clean = s => (s || "").trim().toLowerCase();
 const okName = s => /^[a-z0-9_]{3,16}$/.test(s);
-const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const T = s => (window.T ? window.T(s) : s);
-// Ce module ES ne peut pas lire les const du script classique index.html.
-const APPLE_FIELDS = { red:'redApples', green:'greenApples', golden:'goldenApples', diamond:'diamondApples', candy:'candyApples', lava:'lavaApples', galaxy:'galaxyApples', dark:'darkApples', moony:'moonyApples', salhini:'salhiniApples', bloodmoon:'bloodmoonApples', cheezy:'cheezyApples', sand:'sandApples', amethyst:'amethystApples', ice:'iceApples', sapphire:'sapphireApples', rainbow:'rainbowApples', canneloni:'canneloniApples' };
-const APPLE_NAMES = { red:'Red Apple', green:'Green Apple', golden:'Golden Apple', diamond:'Diamond Apple', candy:'Candy Apple', lava:'Lava Apple', galaxy:'Galaxy Apple', dark:'Dark Apple', moony:'Moony Apple', salhini:'Salhini Appelini', bloodmoon:'Bloodmoon Apple', cheezy:'Cheezy Apple', sand:'Sand Apple', amethyst:'Amethyst Apple', ice:'Ice Apple', sapphire:'Sapphire Apple', rainbow:'Rainbow Apple', canneloni:'Apple Canneloni' };
-Object.keys(NEW_APPLES).forEach(k => { APPLE_FIELDS[k] = NEW_APPLES[k].field; APPLE_NAMES[k] = NEW_APPLES[k].name; });
-const SHOP_PRODUCTS = [{id:'pot_x2_30',multiplier:2,duration:30},{id:'pot_x2_60',multiplier:2,duration:60},{id:'pot_x4_30',multiplier:4,duration:30},{id:'pot_x4_60',multiplier:4,duration:60},{id:'pot_x6_25',multiplier:6,duration:25},{id:'pot_x6_45',multiplier:6,duration:45},{id:'pot_x8_20',multiplier:8,duration:20},{id:'pot_x8_40',multiplier:8,duration:40},{id:'pot_x8_60',multiplier:8,duration:60},{id:'pot_x10_15',multiplier:10,duration:15},{id:'pot_x10_30',multiplier:10,duration:30}];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 const toast = m => showAdvancedMsg(T(m), "top", { color: "white" });
 const toastG = m => showAdvancedMsg(T(m), "top", { color: "#2ecc71" });
+const errMsg = e => { const m = String((e && e.message) || e); return /failed to fetch|networkerror|load failed/i.test(m) ? "Network error" : m.charAt(0).toUpperCase() + m.slice(1); };
+// APPLE_FIELDS, APPLE_NAMES, APPLE_ORDER, IMG_FRUITS, NEW_APPLES, SHOP_PRODUCTS... viennent d'index.html (portée globale)
+const BASE_PRICE = { red: 1, green: 3, golden: 7, diamond: 15, candy: 50, lava: 200, galaxy: 500, dark: 1000, moony: 50000, bloodmoon: 6666666, salhini: 100000000 };
+const priceOf = t => (NEW_APPLES[t] ? NEW_APPLES[t].price : BASE_PRICE[t]) || 0;
 
-let me = null, username = "", rev = 0, loaded = false, saving = false, dirty = false, saveTimer = null;
-let unsubs = [], pendingName = null, inbox = [], outbox = [], draft = { give: {}, ask: {} };
+let me = null, username = "", myPhoto = "", pendingName = null, manualLogout = false;
+const srv = { offset: 0 }; // décalage horloge serveur - horloge locale
+const srvNow = () => Date.now() + srv.offset;
+const acc = () => accounts[currentAccountName];
 
 // si <script src="i18n.js"> manque dans index.html, on le charge ici (boutons EN/FR + traduction)
 if (!window.makeLangSwitch) await new Promise(r => { const sc = document.createElement("script"); sc.src = "i18n.js"; sc.onload = sc.onerror = r; document.head.appendChild(sc); });
 
-/* ---------- données de jeu ---------- */
-const fresh = () => { const d = { money: 0, potions: {}, discovered: {} }; Object.values(APPLE_FIELDS).forEach(f => d[f] = 0); return d; };
-const normalize = d => { d = d || {}; return { ...fresh(), ...d, potions: { ...(d.potions || {}) }, discovered: { ...(d.discovered || {}) } }; };
-const isKey = k => k === "money" || (k.startsWith("apple:") && !!APPLE_FIELDS[k.slice(6)]) || (k.startsWith("potion:") && SHOP_PRODUCTS.some(p => p.id === k.slice(7)));
-const isOffer = o => o && typeof o === "object" && Object.entries(o).every(([k, n]) => isKey(k) && Number.isInteger(n) && n > 0 && n < 1e15);
-const getQ = (d, k) => k === "money" ? d.money : k.startsWith("apple:") ? (d[APPLE_FIELDS[k.slice(6)]] || 0) : ((d.potions || {})[k.slice(7)] || 0);
-function addQ(d, k, n) {
-  if (k === "money") d.money += n;
-  else if (k.startsWith("apple:")) { const t = k.slice(6), f = APPLE_FIELDS[t]; d[f] = (d[f] || 0) + n; if (n > 0) d.discovered[t] = true; }
-  else { const id = k.slice(7); d.potions[id] = (d.potions[id] || 0) + n; }
+/* ---------- API ---------- */
+let cachedToken = "";
+onIdTokenChanged(auth, async u => { cachedToken = u ? await u.getIdToken() : ""; });
+async function api(path, method = "GET", body, opts = {}) {
+  const u = auth.currentUser; if (!u) throw new Error("not signed in");
+  const token = await u.getIdToken();
+  const r = await fetch(API + path, { method, keepalive: !!opts.keepalive,
+    headers: { Authorization: "Bearer " + token, ...(body ? { "Content-Type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  if (!r.ok) { if (j.error === "banned") showBan(j.banned_until, j.now); const e = new Error(j.error || "HTTP " + r.status); e.status = r.status; throw e; }
+  return j;
 }
-function label(k) {
-  if (k === "money") return "$";
-  if (k.startsWith("apple:")) return T(APPLE_NAMES[k.slice(6)]);
-  const p = SHOP_PRODUCTS.find(p => p.id === k.slice(7)); return p ? T(`Luck x${p.multiplier}`) + ` (${p.duration}s)` : k;
+
+/* ---------- données de jeu (copie locale = ce que le serveur a renvoyé) ---------- */
+const fresh = () => { const d = { money: 0, potions: {}, discovered: {}, autosell: {}, fuse: [] }; Object.values(APPLE_FIELDS).forEach(f => d[f] = 0); return d; };
+const normalize = d => { d = d || {}; return { ...fresh(), ...d, potions: { ...(d.potions || {}) }, discovered: { ...(d.discovered || {}) }, autosell: { ...(d.autosell || {}) }, fuse: Array.isArray(d.fuse) ? d.fuse.slice() : [] }; };
+function credit(a, t) { // même règle que le serveur (affichage immédiat, le serveur confirmera)
+  a.discovered[t] = true;
+  if (a.autosell && a.autosell[t]) a.money += priceOf(t); else a[APPLE_FIELDS[t]] = (a[APPLE_FIELDS[t]] || 0) + 1;
 }
-const describe = m => Object.entries(m || {}).map(([k, n]) => `${fmtNum(n)}× ${esc(label(k))}`).join(", ") || T("nothing");
+
+/* ---------- Adventure : apparitions fournies par le serveur ---------- */
+const adv = { on: false, run: 0, seq: -1, start: 0, lead: 0, spawns: [], bits: [], handled: [], unsent: [], rolling: false, syncing: false, timer: null, lastTry: 0, fails: 0, warned: false };
+const entryTime = j => adv.start + Math.max(0, j - adv.lead) * 1000;
+const sizeOf = t => (t === "red" || t === "green") ? 25 : t === "bloodmoon" ? 36 : 32;
+const maskStr = () => adv.bits.map(b => b ? "1" : "0").join("");
+
+// toutes les réponses qui renvoient l'inventaire passent par une file : la plus récente gagne toujours
+let qTail = Promise.resolve(), qN = 0;
+function applyData(d) {
+  if (!d || !me) return;
+  const a = accounts[currentAccountName] = normalize(d);
+  adv.unsent.forEach(t => credit(a, t)); // pommes ramassées pas encore confirmées par le serveur
+  updateAdventureHUD();
+  snap();
+}
+function serial(fn, refreshOnError) {
+  qN++;
+  const job = qTail.then(async () => {
+    let r;
+    try { r = await fn(); }
+    catch (e) { qN--; if (refreshOnError && !qN) refreshMe().catch(() => {}); throw e; }
+    qN--; if (!qN && r && r.data) applyData(r.data);
+    return r;
+  });
+  qTail = job.catch(() => {});
+  return job;
+}
+const refreshMe = () => serial(async () => { const v = await api("/me"); srv.offset = v.now - Date.now(); return v; });
+function act(path, body, optimistic) { // action d'économie : affichage immédiat, le serveur tranche
+  if (optimistic) { try { optimistic(); } catch (e) { console.error(e); } updateAdventureHUD(); }
+  snap();
+  const p = serial(async () => { await advFlushRaw(); return api(path, "POST", body); }, true);
+  p.catch(e => toast(errMsg(e)));
+  return p;
+}
+
+function announce(t) {
+  if (t === "bloodmoon") showAdvancedMsg("A Bloodmoon apple spawned in your server!", "bottom", { color: "#8b0000" });
+  else if (t === "salhini") showAdvancedMsg("A Salhini Appelini spawned in your server!", "bottom", { color: "#F5D7C3" });
+  else if (t === "moony") showAdvancedMsg("A Moony Apple spawned in your server!", "bottom", { stops: ["#BFC1C2", "#F8F8F8", "#9EA0A2", "#ECECEC"] });
+  else if (NEW_APPLES[t]) newAppleMsg(t);
+}
+function spawnEntry(j, live) {
+  const type = adv.spawns[j], size = sizeOf(type), m = size === 25 ? 60 : 35;
+  apples.push({ x: Math.random() * (canvas.width - m), y: Math.random() * (canvas.height - m), size, type, idx: j, advSeq: adv.seq });
+  recordSpawn(type); if (live) announce(type);
+}
+function advTick() {
+  if (!adv.on || !gameActive || currentGameMode !== "adventure") return;
+  const now = srvNow();
+  for (let j = 0; j < adv.spawns.length; j++) {
+    if (adv.handled[j]) continue;
+    if (entryTime(j) > now) { if (j >= adv.lead) break; continue; }
+    adv.handled[j] = true;
+    if (adv.bits[j]) continue; // déjà ramassée (rechargement de page)
+    spawnEntry(j, now - entryTime(j) < 2500);
+  }
+  // toutes les pommes du paquet sont apparues -> paquet suivant (les pommes restantes sont reportées par le serveur)
+  const lastAt = adv.start + (adv.spawns.length - 1 - adv.lead) * 1000 + 300;
+  if (adv.spawns.length && !adv.syncing && now >= lastAt && Date.now() - adv.lastTry > Math.min(10000, 1500 * (adv.fails + 1))) {
+    adv.syncing = true;
+    advCall("/sync", {}, true).catch(() => {}).finally(() => { adv.syncing = false; });
+  }
+}
+function applyPack(p) {
+  srv.offset = p.now - Date.now();
+  const len = p.spawns.length, claimed = String(p.claimed || "").padEnd(len, "0");
+  if (p.seq !== adv.seq) {
+    const prev = adv.seq;
+    adv.seq = p.seq; adv.start = p.packStart; adv.lead = p.lead || 0; adv.spawns = p.spawns.slice();
+    adv.bits = Array.from({ length: len }, (_, i) => claimed[i] === "1");
+    adv.handled = new Array(len).fill(false);
+    // les pommes encore à l'écran deviennent les pommes reportées du nouveau paquet
+    const old = apples.filter(a => a.advSeq === prev && a.idx != null).sort((x, y) => x.idx - y.idx);
+    old.forEach((a, k) => {
+      if (prev >= 0 && k < adv.lead && !adv.bits[k]) { a.advSeq = adv.seq; a.idx = k; a.type = adv.spawns[k]; a.size = sizeOf(a.type); adv.handled[k] = true; }
+      else { const i = apples.indexOf(a); if (i >= 0) apples.splice(i, 1); }
+    });
+  } else { // même paquet : les apparitions à venir ont pu changer (potion de chance)
+    adv.spawns = p.spawns.slice();
+    for (let i = 0; i < len; i++) if (claimed[i] === "1") adv.bits[i] = true;
+  }
+}
+function showLuck(l) {
+  if (!l || !(l.mult > 1)) return;
+  const rem = Math.round((l.until - srvNow()) / 1000); if (rem <= 0) return;
+  if (activeTimers.luck) { if (Math.abs(activeTimers.luck.remaining - rem) <= 2) return; clearInterval(activeTimers.luck.interval); const c = $("event-luck"); if (c) c.remove(); delete activeTimers.luck; }
+  const prod = SHOP_PRODUCTS.find(p => p.multiplier === l.mult);
+  startHudTimer("luck", LUCK_IMAGES[l.mult] || (prod && IMG_POTIONS[prod.type]) || "", rem, "🍀", () => {});
+}
+// une requête qui envoie les pommes ramassées (masque) et reçoit le paquet à jour
+async function advCallRaw(path, extra, next) {
+  const sent = adv.unsent; adv.unsent = []; adv.lastTry = Date.now(); if (next) adv.rolling = true;
+  try {
+    const p = await api(path, "POST", { ...extra, seq: adv.seq, mask: adv.seq < 0 ? null : maskStr(), next: !!next });
+    adv.fails = 0; adv.warned = false;
+    applyPack(p); showLuck(p.luck); if (p.trades) handleTrades(p.trades);
+    return p;
+  } catch (e) { adv.unsent = sent.concat(adv.unsent); adv.fails++; throw e; }
+  finally { adv.rolling = false; }
+}
+const advCall = (path, extra, next) => serial(() => advCallRaw(path, extra, next));
+const advFlushRaw = async () => { if (adv.on && adv.unsent.length) await advCallRaw("/sync", {}, false); };
+const advFlush = () => (adv.on && adv.unsent.length) ? serial(() => advCallRaw("/sync", {}, false)).catch(() => {}) : Promise.resolve();
+
+/* ---------- avertissements anti-triche ---------- */
+const warnCss = document.createElement("style");
+warnCss.textContent = `#warn-ov{position:fixed;inset:0;z-index:9800;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}
+#warn-box{max-width:min(560px,90vw);padding:32px 36px;border-radius:20px;background:rgba(17,22,35,.96);border:1px solid rgba(255,255,255,.12);box-shadow:0 30px 80px rgba(0,0,0,.6);text-align:center;color:#fff;font-weight:800;letter-spacing:-0.02em;animation:trpop .22s ease-out}
+#warn-box .wt{font-size:26px;margin-bottom:14px}
+#warn-box .wb{font-size:16px;line-height:1.7}
+#warn-box .wn{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;background:linear-gradient(90deg,#fff,#a5b4fc 50%,#67e8f9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:800;letter-spacing:-0.03em}
+#warn-box .wn img{width:28px;height:28px;object-fit:contain;-webkit-text-fill-color:initial}
+#warn-box .wx{margin-top:14px;font-size:16px;color:#f43f5e}`;
+document.head.appendChild(warnCss);
+const warnOv = document.createElement("div"); warnOv.id = "warn-ov";
+warnOv.innerHTML = `<div id="warn-box"></div>`;
+document.body.appendChild(warnOv);
+warnOv.addEventListener("mousedown", e => { if (e.target === warnOv && !banUntil) warnOv.style.display = "none"; }); // clic en dehors = ferme (impossible pendant un ban)
+const WLOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge%20NBG%20logo.png";
+const WNAME = `<span class="wn"><img src="${WLOGO}" alt="">Fast Collect Challenge</span>`;
+let lastWarn = 0;
+let banUntil = 0, banTimer = null, srvOff = 0;
+function fmtLeft(ms) {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return String(Math.floor(s / 3600)).padStart(2, "0") + ":" + String(Math.floor(s % 3600 / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+}
+function showBan(until, now) {
+  banUntil = until; srvOff = now ? now - Date.now() : srvOff;
+  advStop(false);
+  $("warn-box").innerHTML = `<div class="wt">You got temporarily banned from ${WNAME}</div><div class="wx" id="ban-left"></div>`;
+  warnOv.style.display = "flex";
+  clearInterval(banTimer);
+  const tick = () => {
+    const left = banUntil - (Date.now() + srvOff);
+    if (left <= 0) { clearInterval(banTimer); banUntil = 0; location.reload(); return; }
+    $("ban-left").textContent = fmtLeft(left);
+  };
+  tick(); banTimer = setInterval(tick, 1000);
+}
+
+async function warnCheater() {
+  if (!me || Date.now() - lastWarn < 10000) return; // une seule alerte à la fois
+  lastWarn = Date.now();
+  if (banUntil) return;
+  let r; try { r = await api("/warn", "POST", {}); } catch (e) { return; }
+  if (r.banned_until) return showBan(r.banned_until, r.now);
+  const n = r.warnings;
+  const box = $("warn-box");
+  if (n === 1) box.innerHTML = `<div class="wt">You got your first warning.</div><div class="wb">${WNAME} does not approve of cheaters, just thought you ought to know.</div>`;
+  else box.innerHTML = `<div class="wt">You just got your last chance.</div><div class="wb">We already told you that ${WNAME} does not approve of cheaters, but you don't seem to understand.</div><div class="wx">Next time it's going to be a ban</div>`;
+  warnOv.style.display = "flex";
+}
+
+/* ---------- détection : inventaire ou argent modifiés à la main ---------- */
+let trusted = null;
+function snap() { // valeurs officielles = ce que le serveur a donné + ce que le jeu a fait lui-même
+  const a = acc(); if (!a) { trusted = null; return; }
+  const ap = {}; Object.values(APPLE_FIELDS).forEach(f => ap[f] = a[f] || 0);
+  trusted = { money: a.money, ap, potions: { ...a.potions } };
+}
+setInterval(() => {
+  const a = acc(); if (!me || !a || !trusted) return;
+  let bad = a.money !== trusted.money;
+  for (const f in trusted.ap) if ((a[f] || 0) !== trusted.ap[f]) bad = true;
+  new Set([...Object.keys(a.potions || {}), ...Object.keys(trusted.potions)]).forEach(id => { if ((a.potions[id] || 0) !== (trusted.potions[id] || 0)) bad = true; });
+  if (!bad) return;
+  warnCheater();
+  a.money = trusted.money; Object.assign(a, trusted.ap); a.potions = { ...trusted.potions }; // on remet les vraies valeurs
+  updateAdventureHUD();
+}, 1000);
+
+window.advHold = () => adv.rolling; // pendant le changement de paquet, on ne ramasse pas (index.html)
+window.advCollect = a => {
+  if (a.idx == null) { warnCheater(); return; } // pomme sans token = pomme fabriquée
+  if (!adv.on || a.advSeq !== adv.seq || adv.bits[a.idx]) return;
+  adv.bits[a.idx] = true; adv.unsent.push(a.type);
+  const d = acc(); if (d) credit(d, a.type);
+  snap();
+  updateAdventureHUD();
+};
+window.advStart = async function () {
+  advStop(false);
+  adv.on = true; adv.seq = -1; adv.spawns = []; adv.bits = []; adv.handled = []; adv.unsent = []; adv.fails = 0;
+  const my = ++adv.run;
+  for (;;) {
+    try { await advCall("/sync", {}, false); break; }
+    catch (e) {
+      if (!adv.on || my !== adv.run) return;
+      if (!adv.warned) { adv.warned = true; toast("Server unavailable, retrying..."); }
+      await sleep(3000); if (!adv.on || my !== adv.run) return;
+    }
+  }
+  if (my !== adv.run) return;
+  clearInterval(adv.timer); adv.timer = setInterval(advTick, 250); advTick();
+};
+function advStop(sendFinal) {
+  const was = adv.on && adv.seq >= 0 && adv.unsent.length;
+  adv.on = false; adv.run++; clearInterval(adv.timer); adv.timer = null;
+  if (sendFinal && was) api("/sync", "POST", { seq: adv.seq, mask: maskStr() }, { keepalive: true }).catch(() => {});
+}
+function beacon() { // fermeture de l'onglet : le serveur accepte la collecte partielle
+  if (!adv.on || adv.seq < 0 || !adv.unsent.length || !cachedToken) return;
+  try { navigator.sendBeacon(API + "/sync", new Blob([JSON.stringify({ token: cachedToken, seq: adv.seq, mask: maskStr() })], { type: "text/plain" })); } catch (e) {}
+}
+document.addEventListener("visibilitychange", () => { if (document.hidden) beacon(); });
+window.addEventListener("pagehide", beacon);
+
+/* ---------- actions d'économie (le serveur décide, l'écran suit) ---------- */
+window.saveAllAccounts = function () { updateAdventureHUD(); };
+const _leave = window.leaveGame;
+window.leaveGame = function () { _leave(); advStop(true); };
+
+window.buyPotion = function (product) {
+  const a = acc(); if (!a) return;
+  if (a.money < product.price) { alert("You don't have enough money to buy this potion!"); return; }
+  showCustomConfirm("Are you sure you want to buy this potion?", ok => {
+    if (!ok) return;
+    act("/buy", { id: product.id }, () => { a.money -= product.price; a.potions[product.id] = (a.potions[product.id] || 0) + 1; }).then(() => renderShopGrid()).catch(() => renderShopGrid());
+  });
+};
+window.sellPotion = function (id) {
+  const a = acc(), prod = SHOP_PRODUCTS.find(p => p.id === id); if (!a || !prod || !(a.potions[id] > 0)) return;
+  showCustomConfirm("Are you sure you want to sell this potion (You will only keep 80% of the price)?", ok => {
+    if (!ok) return;
+    act("/sell-potion", { id }, () => { a.potions[id]--; a.money += Math.floor(prod.price * 0.8); });
+  });
+};
+window.usePotion = function (id) {
+  const a = acc(), prod = SHOP_PRODUCTS.find(p => p.id === id); if (!a || !prod || !(a.potions[id] > 0) || !adv.on) return;
+  showCustomConfirm("Are you sure you want to use this potion?", async ok => {
+    if (!ok) return;
+    try {
+      await advCall("/use-potion", { id }, false);
+      showAdvancedMsg(`You activated Potion ${prod.multiplier}x luck!`, "bottom", getLuckStyle(prod.multiplier));
+      toggleInventory(false);
+    } catch (e) { toast(errMsg(e)); }
+  });
+};
+window.confirmTransaction = function () {
+  if (!activeSellType) return; const a = acc(); if (!a) return;
+  const t = activeSellType, v = $("sell-quantity").value.trim(), f = APPLE_FIELDS[t], stock = a[f] || 0;
+  let n;
+  if (v.toLowerCase() === "max") n = stock;
+  else { n = parseInt(v, 10); if (isNaN(n) || n <= 0) { alert("Please enter a valid amount or type 'Max'."); return; } n = Math.min(n, stock); }
+  if (!(n > 0)) { alert("You don't have any apples of this kind to sell!"); closeSellModal(); return; }
+  closeSellModal();
+  act("/sell", { type: t, qty: n }, () => { a[f] -= n; a.money += n * priceOf(t); });
+};
+window.FC = { act, priceOf, srvNow, credit, refreshMe };
 
 /* ---------- écran de connexion ---------- */
 const ov = document.createElement("div");
@@ -72,17 +327,10 @@ document.body.appendChild(boot);
 document.body.appendChild(ov);
 if (window.makeLangSwitch) { const w = makeLangSwitch(); w.style.cssText = "top:14px;left:16px"; ov.appendChild(w); }
 const err = e => $("au-err").textContent = (e && (e.code || e.message)) || String(e);
-  [/^Ready$/, "Prêt"], [/^Not ready$/, "Pas prêt"], [/^Invalid offer$/, "Offre invalide"],
-  [/^Press Ready when your offer is final$/, "Appuie sur Prêt quand ton offre est finale"],
-  [/^Waiting for (@\S+) to be ready\.\.\.$/, "En attente que $1 soit prêt..."],
-  [/^Waiting for (@\S+) to confirm\.\.\.$/, "En attente de la confirmation de $1..."],
-  [/^Both ready! Press Confirm$/, "Les deux sont prêts ! Appuie sur Confirmer"],
-  [/^Completing in (\d+)s\.\.\.$/, "Fin de l'échange dans $1s..."],
-  [/^Trade with (@\S+) completed!$/, "Échange avec $1 terminé !"],
 window.addEventListener("unhandledrejection", e => { console.error(e.reason); err(e.reason); });
 window.addEventListener("error", e => err(e.message));
 let mode = "login";
-function setMode(m) {
+function setAuthMode(m) {
   mode = m; const su = m === "signup";
   $("au-main").textContent = su ? "Sign up" : "Log in";
   $("au-social").style.display = su ? "none" : "flex";
@@ -98,14 +346,15 @@ async function pseudoAuth(signup) {
     } else {
       const n = clean(raw); if (!okName(n)) return err("Username: 3-16 chars, a-z 0-9 _");
       if (signup) {
-        if ((await getDoc(doc(db, "usernames", n))).exists()) return err("Username already taken");
+        const f = await fetch(API + "/username-free?u=" + encodeURIComponent(n)).then(r => r.json()).catch(() => null);
+        if (f && f.free === false) return err("Username already taken");
         pendingName = n; await createUserWithEmailAndPassword(auth, n + FAKE, pw);
       } else await signInWithEmailAndPassword(auth, n + FAKE, pw);
     }
   } catch (e) { pendingName = null; err(e); }
 }
 $("au-main").onclick = () => pseudoAuth(mode === "signup");
-$("au-alt").onclick = e => { e.preventDefault(); setMode(mode === "signup" ? "login" : "signup"); };
+$("au-alt").onclick = e => { e.preventDefault(); setAuthMode(mode === "signup" ? "login" : "signup"); };
 let popupBusy = false;
 const social = Provider => {
   if (popupBusy) return;
@@ -120,7 +369,6 @@ $("au-guest").onclick = e => { e.preventDefault(); signInAnonymously(auth).catch
 
 /* ---------- profil ---------- */
 const AV0 = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge.png";
-let myPhoto = "";
 const pf = document.createElement("div"); pf.id = "profile-page";
 pf.style.cssText = "position:fixed;inset:0;z-index:9100;background:#000;border:10px solid #f1c40f;box-sizing:border-box;display:none;align-items:center;color:#f1c40f";
 pf.innerHTML = `<div style="width:48%;padding:0 3%;box-sizing:border-box;display:flex;flex-direction:row;align-items:center;gap:24px"><img src="${LOGO}" style="width:120px;height:120px;object-fit:contain;flex:none"><div style="font-size:40px;line-height:1.5;text-transform:uppercase;text-shadow:4px 4px 0 #333">Fast Collect Challenge</div></div>
@@ -128,7 +376,6 @@ pf.innerHTML = `<div style="width:48%;padding:0 3%;box-sizing:border-box;display
 <div id="pf-title" style="font-size:22px;font-weight:700;color:#fff;text-align:center;line-height:1.3"></div>
 <div style="display:flex;justify-content:center"><img id="pf-prev" style="width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid #f1c40f;background:#222"></div>
 <input id="pf-name" style="${inp}" placeholder="Username (3-16: a-z, 0-9, _)"><input id="pf-photo" style="${inp}" placeholder="Profile picture URL (https://...)">
-<label id="pf-imp-row" style="display:none;color:#ddd;font-size:13px"><input type="checkbox" id="pf-imp" checked> <span>Import my local progress</span> <b id="pf-imp-name"></b></label>
 <div id="pf-lang" style="display:none;align-items:center;justify-content:center;gap:12px;color:#ddd;font-size:14px"><span>Language</span></div>
 <button id="pf-ok" style="padding:13px;border:0;border-radius:50px;background:#f1c40f;color:#000;font-size:15px;font-weight:700;cursor:pointer"></button>
 <a id="pf-close" href="#" style="color:#ddd;text-align:center;font-size:13px">Close</a><a id="pf-out" href="#" style="color:#aaa;text-align:center;font-size:13px">Log out</a>
@@ -142,18 +389,21 @@ function showPrev() {
   im.src = /^https:\/\/\S+$/i.test(u) ? u : AV0;
 }
 $("pf-photo").oninput = showPrev;
-function openProfilePage({ edit, noName, name, photo, loc, submit, cancel }) {
+function openProfilePage({ edit, noName, name, photo, submit, cancel }) {
+  let hideName = !!noName;
   $("pf-title").textContent = edit ? "Edit your profile picture" : noName ? "Choose your profile picture" : "Choose your username and profile picture";
   $("pf-ok").textContent = edit ? "Save" : "Continue";
   $("pf-name").value = name || ""; $("pf-name").disabled = !!edit; $("pf-name").style.display = noName ? "none" : ""; $("pf-photo").value = photo || ""; showPrev();
-  $("pf-imp-row").style.display = loc ? "block" : "none"; if (loc) $("pf-imp-name").textContent = `(${loc.k})`;
   $("pf-close").style.display = edit ? "block" : "none"; $("pf-lang").style.display = edit ? "flex" : "none"; $("pf-out").textContent = edit && auth.currentUser && auth.currentUser.isAnonymous ? "Log in / Sign up" : "Log out"; pferr(""); pf.style.display = "flex";
   $("pf-ok").onclick = async () => {
-    const n = noName ? name : clean($("pf-name").value), p = $("pf-photo").value.trim();
+    const n = hideName ? name : clean($("pf-name").value), p = $("pf-photo").value.trim();
     if (!okName(n)) return pferr("Invalid username");
     if (p && !/^https:\/\/\S+$/i.test(p)) return pferr("Invalid picture URL (must start with https://)");
-    try { await submit(n, p, $("pf-imp").checked); pf.style.display = "none"; }
-    catch (e) { pferr(e.message === "taken" ? "Username already taken" : e); }
+    try { await submit(n, p); pf.style.display = "none"; }
+    catch (e) {
+      if (e.message === "taken" && hideName) { hideName = false; $("pf-name").style.display = ""; $("pf-name").value = n; } // pseudo pris entre-temps : on laisse choisir un autre
+      pferr(e.message === "taken" ? "Username already taken" : e);
+    }
   };
   $("pf-close").onclick = e => { e.preventDefault(); pf.style.display = "none"; };
   $("pf-out").onclick = async e => { e.preventDefault(); await cancel(); pf.style.display = "none"; };
@@ -163,75 +413,38 @@ function setAvatar(url) {
   b.innerHTML = '<img style="width:100%;height:100%;border-radius:50%;object-fit:cover;border:calc(3*var(--u)) solid #f1c40f;box-sizing:border-box;background:#222">';
   const im = b.firstChild; im.onerror = () => { im.onerror = null; im.src = AV0; }; im.src = url || AV0;
 }
-
-const readLocal = () => {
-  try { const a = JSON.parse(localStorage.getItem("fastCollect_accounts") || "null"), k = localStorage.getItem("fastCollect_activeAccount"); return a && a[k] ? { k, d: a[k] } : null; }
-  catch (e) { return null; }
-};
-const claim = (user, name, photo, init) => runTransaction(db, async t => {
-  const u = doc(db, "usernames", name);
-  if ((await t.get(u)).exists()) throw new Error("taken");
-  t.set(u, { uid: user.uid });
-  t.set(doc(db, "users", user.uid), { username: name, photo, rev: 1, data: init });
-});
 const suggest = u => clean((u.displayName || u.email || "").split("@")[0]).replace(/[^a-z0-9_]/g, "_").slice(0, 16);
+const claim = async (name, photo) => { try { await api("/me", "POST", { username: name, photo }); } catch (e) { if (e.message !== "exists") throw e; } };
 
-async function ensureProfile(user) {
-  if ((await getDoc(doc(db, "users", user.uid))).exists()) return true;
-  const loc = readLocal(), chosen = pendingName; pendingName = null;
+async function ensureProfile(user) { // renvoie le compte du serveur, ou null si la connexion est annulée
+  try { return await api("/me"); } catch (e) { if (e.status !== 404) throw e; }
+  const chosen = pendingName; pendingName = null;
   if (user.isAnonymous) { // invité : pas de page, pseudo guestXXXX
-    let init = fresh();
-    if (loc && confirm(`Import your local progress from "${loc.k}"?`)) init = normalize(loc.d);
     for (let i = 0; i < 5; i++) {
-      try { await claim(user, "guest" + Math.floor(1000 + Math.random() * 9000), "", init); return true; }
+      try { await claim("guest" + Math.floor(1000 + Math.random() * 9000), ""); return await api("/me"); }
       catch (e) { if (e.message !== "taken") throw e; }
     }
-    await signOut(auth); return false;
+    await signOut(auth); return null;
   }
-  // Toute création de compte : page de profil (pseudo + mot de passe : photo seule, sans champ pseudo)
   return new Promise(res => openProfilePage({
-    edit: false, noName: !!chosen, name: chosen || suggest(user), photo: user.photoURL || "", loc,
-    submit: async (n, p, imp) => { await claim(user, n, p, imp && loc ? normalize(loc.d) : fresh()); res(true); },
-    cancel: async () => { await signOut(auth); res(false); }
+    edit: false, noName: !!chosen, name: chosen || suggest(user), photo: user.photoURL || "",
+    submit: async (n, p) => { await claim(n, p); res(await api("/me")); },
+    cancel: async () => { await signOut(auth); res(null); }
   }));
 }
 
 function applyRemote(v) {
-  rev = v.rev; username = v.username; myPhoto = v.photo || ""; setAvatar(myPhoto); if (window.autosellReset) window.autosellReset();
+  username = v.username; myPhoto = v.photo || ""; setAvatar(myPhoto);
   accounts = { [username]: normalize(v.data) }; currentAccountName = username;
-  window.__fcUser = username; try { setMode(window.__fcMode || "menu"); } catch (e) {}
+  window.__fcUser = username; try { window.setMode(window.__fcMode || "menu"); } catch (e) {}
   updateAdventureHUD();
+  snap();
 }
-
-/* ---------- sauvegarde cloud (remplace saveAllAccounts) ---------- */
-async function saveNow() {
-  if (!me) return;
-  if (saving) { dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 1500); return; }
-  if (!dirty) return;
-  saving = true; dirty = false;
-  const ref = doc(db, "users", me);
-  try {
-    let conflict = null;
-    await runTransaction(db, async t => {
-      conflict = null;
-      const v = (await t.get(ref)).data();
-      if (v.rev !== rev) { conflict = v; return; }
-      t.update(ref, { data: accounts[currentAccountName], rev: rev + 1 });
-    });
-    if (conflict) applyRemote(conflict); else rev++;
-  } catch (e) { dirty = true; console.error("save failed", e); }
-  saving = false;
-}
-window.saveAllAccounts = function () { updateAdventureHUD(); if (!me) return; dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 2000); };
-const _leave = window.leaveGame;
-window.leaveGame = function () { _leave(); saveNow(); };
 window.openAccountModal = () => me && openProfilePage({
   edit: true, name: username, photo: myPhoto,
-  submit: async (n, p) => { await updateDoc(doc(db, "users", me), { photo: p }); myPhoto = p; setAvatar(p); },
-  cancel: async () => { await saveNow(); manualLogout = true; await signOut(auth); }
+  submit: async (n, p) => { await api("/me/photo", "PATCH", { photo: p }); myPhoto = p; setAvatar(p); },
+  cancel: async () => { await advFlush(); manualLogout = true; await signOut(auth); }
 });
-document.addEventListener("visibilitychange", () => { if (document.hidden) saveNow(); });
-window.addEventListener("pagehide", saveNow);
 
 /* ---------- Trade : UI ---------- */
 const trBtn = document.createElement("button");
@@ -262,12 +475,10 @@ tr.innerHTML = `<button id="tr-close" style="display:none"></button>
 document.body.appendChild(tr);
 
 const HINT = '<div class="tr-hint">Type a username to search</div>';
-const beat = () => { if (me) updateDoc(doc(db, "users", me), { lastSeen: serverTimestamp() }).catch(() => {}); };
-const recent = t => !t.createdAt || Date.now() - t.createdAt.toMillis() < 120000;
-
 trBtn.onclick = () => {
   ["inventory-screen", "shop-screen", "index-screen"].forEach(i => $(i).style.display = "none");
   tr.style.display = "flex"; $("tr-user").value = ""; $("tr-results").innerHTML = HINT; $("tr-user").focus();
+  pollTrades();
 };
 $("tr-close").onclick = () => { tr.style.display = "none"; };
 
@@ -278,18 +489,15 @@ async function doSearch() {
   const q = clean($("tr-user").value).replace(/^@/, ""), box = $("tr-results"), seq = ++searchSeq;
   if (!q) { box.innerHTML = HINT; return; }
   try {
-    const snap = await getDocs(query(collection(db, "usernames"), where(documentId(), ">=", q), where(documentId(), "<=", q + "\uf8ff"), limit(5)));
-    const ids = snap.docs.map(d => d.data().uid).filter(u => u !== me);
-    const users = await Promise.all(ids.map(u => getDoc(doc(db, "users", u))));
+    const r = await api("/users?q=" + encodeURIComponent(q));
     if (seq !== searchSeq) return;
     box.textContent = "";
-    const found = users.filter(u => u.exists());
-    if (!found.length) { box.innerHTML = '<div class="tr-hint">No player found</div>'; return; }
-    found.forEach(u => box.appendChild(playerRow(u.id, u.data())));
-  } catch (e) { box.textContent = e.code || e.message; }
+    if (!r.users.length) { box.innerHTML = '<div class="tr-hint">No player found</div>'; return; }
+    r.users.forEach(u => box.appendChild(playerRow(u)));
+  } catch (e) { box.textContent = errMsg(e); }
 }
-function playerRow(uid, u) {
-  const on = !!u.lastSeen && Date.now() - u.lastSeen.toMillis() < 100000;
+function playerRow(u) {
+  const on = !!u.online;
   const r = document.createElement("div"); r.className = "tr-row";
   const img = new Image(); img.className = "tr-av"; img.onerror = () => { img.onerror = null; img.src = AV0; }; img.src = u.photo || AV0;
   const mid = document.createElement("div"); mid.className = "tr-mid";
@@ -297,44 +505,70 @@ function playerRow(uid, u) {
   const st = document.createElement("div"); st.textContent = on ? "Online" : "Offline"; st.style.color = on ? "#2ecc71" : "#e74c3c";
   mid.append(nm, st);
   const b = document.createElement("button"); b.className = "tr-send"; b.textContent = "Send Trade"; b.disabled = !on;
-  b.onclick = () => sendRequest(uid, u.username, b);
+  b.onclick = () => sendRequest(u.username, b);
   r.append(img, mid, b); return r;
 }
-async function sendRequest(uid, uname, btn) {
-  if (outbox.some(t => t.to === uid && recent(t))) return toast("Request already pending");
+async function sendRequest(uname, btn) {
+  if (trades.some(t => t.role === "from" && t.status === "pending" && t.other === uname)) return toast("Request already pending");
   btn.disabled = true;
-  try {
-    await addDoc(collection(db, "trades"), { from: me, fromName: username, to: uid, toName: uname, give: {}, ask: {}, offers: {}, status: "pending", createdAt: serverTimestamp() });
-    btn.textContent = "Request sent"; toast("Trade request sent!");
-  } catch (e) { btn.disabled = false; toast(e.message); }
+  try { await api("/trades", "POST", { to: uname }); btn.textContent = "Request sent"; toast("Trade request sent!"); pollTrades(); }
+  catch (e) { btn.disabled = false; toast(errMsg(e)); }
+}
+
+/* ---------- Trade : demandes et état (reçus avec la synchro ; sondage rapide seulement quand c'est utile) ---------- */
+let trades = [], cur = null, fastTimer = null, polling = false;
+const shown = new Map(), dismissed = new Set();
+function setFast(on) {
+  if (on && !fastTimer) fastTimer = setInterval(pollTrades, 2000);
+  if (!on && fastTimer) { clearInterval(fastTimer); fastTimer = null; }
+}
+async function pollTrades() {
+  if (polling || !me) return; polling = true;
+  try { const r = await api("/trades"); if (r.now) srv.offset = r.now - Date.now(); handleTrades(r.trades); } catch (e) { console.warn(e); }
+  polling = false;
+}
+function handleTrades(list) {
+  trades = list || [];
+  renderIncoming(trades.filter(t => t.role === "to" && t.status === "pending"));
+  if (cur) {
+    const t = trades.find(x => x.id === cur.id);
+    if (!t) stopTrading();
+    else if (t.status === "accepted") { cur = t; renderTrading(); }
+    else tradeEnded(t);
+  } else {
+    const t = trades.find(x => x.status === "accepted");
+    if (t) openTrading(t);
+  }
+  setFast(!!cur || trades.some(x => x.role === "from" && x.status === "pending"));
+}
+function tradeEnded(t) {
+  if (t.status === "completed") { toastG(`Trade with @${cur.other} completed!`); refreshMe().catch(() => {}); }
+  else if (t.status === "cancelled" && !t.cancelledByMe) toastG("@" + cur.other + " cancelled the trade");
+  stopTrading();
 }
 
 /* demandes reçues : mini pop-up en bas à droite */
-const shown = new Map(), dismissed = new Set();
 function renderIncoming(list) {
   const ids = new Set();
-  list.forEach(t => {
-    if (!recent(t) || dismissed.has(t.id)) return;
-    ids.add(t.id); if (!shown.has(t.id)) shown.set(t.id, makeToast(t));
-  });
+  list.forEach(t => { if (dismissed.has(t.id)) return; ids.add(t.id); if (!shown.has(t.id)) shown.set(t.id, makeToast(t)); });
   shown.forEach((el, id) => { if (!ids.has(id)) { el.remove(); shown.delete(id); } });
 }
 function makeToast(t) {
   const c = document.createElement("div"); c.className = "tr-toast rb";
   const m = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
-  b.textContent = "@" + t.fromName; sp.textContent = " sent you a trade request"; m.append(b, sp);
+  b.textContent = "@" + t.other; sp.textContent = " sent you a trade request"; m.append(b, sp);
   const row = document.createElement("div"); row.className = "tr-btns";
   const ac = document.createElement("button"), de = document.createElement("button");
   ac.className = "tr-acc"; ac.textContent = "Accept"; de.className = "tr-dec"; de.textContent = "Decline";
-  ac.onclick = () => respond(t, "accepted"); de.onclick = () => respond(t, "declined");
+  ac.onclick = () => respond(t, true); de.onclick = () => respond(t, false);
   row.append(ac, de); c.append(m, row); trToasts.appendChild(c);
   setTimeout(() => { dismissed.add(t.id); c.remove(); shown.delete(t.id); }, 30000);
   return c;
 }
-async function respond(t, status) {
+async function respond(t, accept) {
   dismissed.add(t.id); const el = shown.get(t.id); if (el) el.remove(); shown.delete(t.id);
-  try { await updateDoc(doc(db, "trades", t.id), { status }); toast(status === "accepted" ? "Trade request accepted" : "Trade request declined"); }
-  catch (e) { toast(e.message); }
+  try { await api(`/trades/${t.id}/respond`, "POST", { accept }); toast(accept ? "Trade request accepted" : "Trade request declined"); if (accept) pollTrades(); }
+  catch (e) { toast(errMsg(e)); }
 }
 
 /* ---------- Trade : fenêtre d'échange ---------- */
@@ -369,9 +603,10 @@ am2.innerHTML = `<div class="sell-box"><h3>Quantity to add</h3><div id="add-name
 <div class="sell-actions"><button class="acc-btn" id="add-ok">Confirm</button><button class="acc-btn danger" id="add-cancel">Cancel</button></div></div>`;
 document.body.appendChild(am2);
 
-let cur = null, curUnsub = null, twTimer = null, sigLast = "", addType = null, addQty = 0, addMax = 0;
-const owned = t => (accounts[currentAccountName] || {})[APPLE_FIELDS[t]] || 0;
-const offerOf = (uid, t) => (cur && cur.offers && cur.offers[uid] && cur.offers[uid][t]) || 0;
+let sigLast = "", addType = null, addQty = 0, addMax = 0, cd = { id: null, done: false };
+const CD_MS = 5000;
+const owned = t => (acc() || {})[APPLE_FIELDS[t]] || 0;
+const lacking = o => Object.keys(o).find(t => owned(t) < o[t]);
 function twCard(type, qty, click) {
   const c = document.createElement("div"); c.className = "tw-card" + (click ? " click" : "") + (click && qty > 0 ? " on" : "");
   const n = document.createElement("div"); n.className = "nm"; n.textContent = APPLE_NAMES[type];
@@ -382,63 +617,49 @@ function twCard(type, qty, click) {
 function renderTrading() {
   renderFooter();
   if (!cur) return;
-  const other = cur.from === me ? cur.to : cur.from;
-  const sig = JSON.stringify([cur.offers || {}, APPLE_ORDER.map(owned)]);
+  const sig = JSON.stringify([cur.mine, cur.theirs, APPLE_ORDER.map(owned)]);
   if (sig === sigLast) return; sigLast = sig;
   const mine = $("tw-mine"), theirs = $("tw-theirs"); mine.innerHTML = ""; theirs.innerHTML = "";
   const hint = m => `<div class="tw-hint">${m}</div>`;
-  APPLE_ORDER.forEach(t => { if (owned(t) > 0 || offerOf(me, t) > 0) mine.appendChild(twCard(t, offerOf(me, t), () => openAdd(t))); });
+  APPLE_ORDER.forEach(t => { if (owned(t) > 0 || (cur.mine[t] || 0) > 0) mine.appendChild(twCard(t, cur.mine[t] || 0, () => openAdd(t))); });
   if (!mine.children.length) mine.innerHTML = hint("You have no apples");
-  APPLE_ORDER.forEach(t => { if (offerOf(other, t) > 0) theirs.appendChild(twCard(t, offerOf(other, t))); });
+  APPLE_ORDER.forEach(t => { if ((cur.theirs[t] || 0) > 0) theirs.appendChild(twCard(t, cur.theirs[t])); });
   if (!theirs.children.length) theirs.innerHTML = hint("Nothing yet");
 }
 function openTrading(t) {
   if (cur) return;
-  cur = t; sigLast = "";
-  const other = t.from === me ? t.toName : t.fromName;
-  $("tw-title").textContent = "Trading with @" + other;
-  $("tw-their-title").textContent = "@" + other + "'s offer";
+  cur = t; sigLast = ""; cd = { id: t.id, done: false };
+  $("tw-title").textContent = "Trading with @" + t.other;
+  $("tw-their-title").textContent = "@" + t.other + "'s offer";
   ["inventory-screen", "shop-screen", "index-screen"].forEach(i => $(i).style.display = "none");
-  tr.style.display = "none"; tw.style.display = "flex"; renderTrading();
-  curUnsub = onSnapshot(doc(db, "trades", t.id), s => {
-    if (!s.exists()) return stopTrading();
-    cur = { id: s.id, ...s.data() };
-    if (cur.status === "completed") { toastG(`Trade with @${other} completed!`); return stopTrading(); }
-    if (cur.status !== "accepted") { if (cur.cancelledBy !== me) toastG("@" + other + " cancelled the trade"); return stopTrading(); }
-    renderTrading();
-  });
-  twTimer = setInterval(renderTrading, 1500);
+  tr.style.display = "none"; tw.style.display = "flex"; renderTrading(); setFast(true);
 }
 function stopTrading() {
-  if (curUnsub) curUnsub(); curUnsub = null; clearInterval(twTimer); cur = null;
-  tw.style.display = "none"; am2.style.display = "none";
+  cur = null; tw.style.display = "none"; am2.style.display = "none";
+  setFast(trades.some(x => x.role === "from" && x.status === "pending"));
 }
-$("trading-close").onclick = () => {
-  const id = cur && cur.id; stopTrading();
-  if (id) updateDoc(doc(db, "trades", id), { status: "cancelled" }).catch(() => {});
-};
+$("trading-close").onclick = () => { const id = cur && cur.id; stopTrading(); if (id) api(`/trades/${id}/cancel`, "POST", {}).catch(() => {}); };
 const setAdd = n => { addQty = Math.max(0, Math.min(addMax, n)); $("add-num").textContent = addQty; };
 function openAdd(type) {
   addType = type; addMax = owned(type); $("add-name").textContent = APPLE_NAMES[type];
-  setAdd(offerOf(me, type)); am2.style.display = "flex";
+  setAdd((cur && cur.mine[type]) || 0); am2.style.display = "flex";
 }
 am2.addEventListener("click", e => {
   const b = e.target.closest("[data-d]"); if (!b) return; const d = b.dataset.d;
   setAdd(d === "none" ? 0 : d === "all" ? addMax : addQty + parseInt(d));
 });
 $("add-cancel").onclick = () => { am2.style.display = "none"; };
-/* ---------- Trade : Ready / Confirm / 5 s ---------- */
-const CD_MS = 5000, applying = new Set();
-let cdStart = 0, cdDone = false;
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-const flag = (t, k, uid) => !!(t[k] && t[k][uid]);
-const lacking = o => Object.keys(o).find(t => owned(t) < o[t]);
-const offerOfDoc = (t, uid) => (t.offers && t.offers[uid]) || {};
+
+async function tradeCall(act, body) {
+  if (!cur) return; const id = cur.id;
+  try { await advFlush(); await api(`/trades/${id}/${act}`, "POST", body); } catch (e) { toast(errMsg(e)); }
+  pollTrades();
+}
+$("add-ok").onclick = () => { am2.style.display = "none"; if (cur) tradeCall("offer", { type: addType, qty: addQty }); };
 
 function renderFooter() {
   if (!cur) return;
-  const other = cur.from === me ? cur.to : cur.from, on = cur.from === me ? cur.toName : cur.fromName;
-  const rMe = flag(cur, "ready", me), rOt = flag(cur, "ready", other), cMe = flag(cur, "confirm", me), cOt = flag(cur, "confirm", other);
+  const on = cur.other, rMe = cur.readyMe, rOt = cur.readyOther, cMe = cur.confirmMe, cOt = cur.confirmOther;
   const st = $("tw-state"), main = $("tw-main"), cn = $("tw-cancel");
   cn.style.display = "none"; main.style.display = ""; main.style.background = "#27ae60";
   if (cMe && cOt) { main.style.display = "none"; cn.style.display = ""; }
@@ -447,94 +668,44 @@ function renderFooter() {
   else if (rMe) { st.textContent = `Waiting for @${on} to be ready...`; main.textContent = "Not ready"; main.style.background = "#7f8c8d"; main.dataset.a = "unready"; }
   else { st.textContent = "Press Ready when your offer is final"; main.textContent = "Ready"; main.dataset.a = "ready"; }
 }
-const tradeUpd = patch => updateDoc(doc(db, "trades", cur.id), patch).catch(e => toast(e.message));
 $("tw-main").onclick = () => {
-  if (!cur) return; const a = $("tw-main").dataset.a, other = cur.from === me ? cur.to : cur.from, mine = offerOfDoc(cur, me);
+  if (!cur) return; const a = $("tw-main").dataset.a, mine = cur.mine;
   if (a === "ready") {
-    if (!Object.keys(mine).length && !Object.keys(offerOfDoc(cur, other)).length) return toast("Empty offer");
+    if (!Object.keys(mine).length && !Object.keys(cur.theirs).length) return toast("Empty offer");
     const l = lacking(mine); if (l) return toast("You don't have enough: " + APPLE_NAMES[l]);
-    tradeUpd({ [`ready.${me}`]: true });
-  } else if (a === "unready") tradeUpd({ [`ready.${me}`]: false, [`confirm.${me}`]: false });
+    tradeCall("ready", { value: true });
+  } else if (a === "unready") tradeCall("ready", { value: false });
   else if (a === "confirm") {
     const l = lacking(mine); if (l) return toast("You don't have enough: " + APPLE_NAMES[l]);
-    tradeUpd({ [`confirm.${me}`]: true });
-  } else if (a === "unconfirm") cancelConfirm();
+    tradeCall("confirm", { value: true });
+  } else if (a === "unconfirm") tradeCall("confirm", { value: false });
 };
-$("tw-cancel").onclick = () => cancelConfirm();
+$("tw-cancel").onclick = () => tradeCall("confirm", { value: false });
 
-async function cancelConfirm() {
-  if (!cur) return; const id = cur.id; cdStart = 0;
-  try {
-    await runTransaction(db, async tx => {
-      const r = doc(db, "trades", id), t = (await tx.get(r)).data();
-      if (!t || t.status !== "accepted") return;
-      tx.update(r, { [`confirm.${me}`]: false, ok: {} });
-    });
-  } catch (e) { toast(e.message); }
-}
-
+// 5 s après la double confirmation, l'un des deux joueurs demande au serveur de conclure (le serveur échange tout en une fois)
 setInterval(() => {
-  if (!cur || cur.status !== "accepted") { cdStart = 0; return; }
-  const other = cur.from === me ? cur.to : cur.from;
-  if (!(flag(cur, "confirm", me) && flag(cur, "confirm", other))) { cdStart = 0; return; }
-  if (!cdStart) { cdStart = Date.now(); cdDone = false; }
-  const left = Math.ceil((CD_MS - (Date.now() - cdStart)) / 1000);
+  if (!cur || !(cur.confirmMe && cur.confirmOther) || !cur.bothAt) return;
+  const left = Math.ceil((CD_MS - (srvNow() - cur.bothAt)) / 1000);
   if (left > 0) { $("tw-state").textContent = `Completing in ${left}s...`; return; }
-  if (!cdDone) { cdDone = true; markOk(cur.id); }
+  if (!cd.done) { cd.done = true; finishTrade(cur.id); }
 }, 250);
-
-async function markOk(id) {
-  let short = null, bad = false;
-  try {
-    await runTransaction(db, async tx => {
-      short = null; bad = false;
-      const r = doc(db, "trades", id), t = (await tx.get(r)).data();
-      if (!t || t.status !== "accepted" || !flag(t, "confirm", t.from) || !flag(t, "confirm", t.to)) return;
-      const other = t.from === me ? t.to : t.from;
-      short = lacking(offerOfDoc(t, me));
-      if (short) { tx.update(r, { status: "cancelled", cancelledBy: me }); return; }
-      if (t.ok && t.ok[other]) {
-        const od = normalize(((await tx.get(doc(db, "users", other))).data() || {}).data), go = offerOfDoc(t, other);
-        if (Object.entries(go).some(([k, n]) => !APPLE_FIELDS[k] || !Number.isInteger(n) || n <= 0 || (od[APPLE_FIELDS[k]] || 0) < n)) { bad = true; tx.update(r, { status: "cancelled", cancelledBy: me }); return; }
-        tx.update(r, { ok: { ...t.ok, [me]: true }, status: "completed", unapplied: [t.from, t.to] });
-      } else tx.update(r, { ok: { ...(t.ok || {}), [me]: true } });
-    });
-    if (short) toast("You don't have enough: " + APPLE_NAMES[short]);
-    if (bad) toast("Invalid offer");
-  } catch (e) { toast(e.message); }
+async function finishTrade(id) {
+  for (let i = 0; i < 6; i++) {
+    try {
+      await advFlush(); await api(`/trades/${id}/complete`, "POST", {}); await refreshMe();
+      if (cur && cur.id === id) { toastG(`Trade with @${cur.other} completed!`); stopTrading(); }
+      return;
+    } catch (e) {
+      if (e.status === 425 || e.status === 409) { await sleep(700); continue; }
+      toast(errMsg(e)); break;
+    }
+  }
+  pollTrades();
 }
-
-async function applyTrade(t) {
-  if (applying.has(t.id)) return; applying.add(t.id);
-  try {
-    for (let i = 0; saving && i < 50; i++) await sleep(200);
-    dirty = true; await saveNow();
-    await runTransaction(db, async tx => {
-      const tr = doc(db, "trades", t.id), ur = doc(db, "users", me);
-      const td = (await tx.get(tr)).data(), v = (await tx.get(ur)).data();
-      if (!td || !(td.unapplied || []).includes(me)) return;
-      const other = td.from === me ? td.to : td.from, d = normalize(v.data);
-      const give = offerOfDoc(td, me), get = offerOfDoc(td, other);
-      const valid = o => Object.entries(o).every(([k, n]) => APPLE_FIELDS[k] && Number.isInteger(n) && n > 0);
-      if (!valid(give) || !valid(get)) throw new Error("Invalid offer");
-      for (const [k, n] of Object.entries(give)) if ((d[APPLE_FIELDS[k]] || 0) < n) throw new Error("You don't have enough items");
-      for (const [k, n] of Object.entries(give)) d[APPLE_FIELDS[k]] -= n;
-      for (const [k, n] of Object.entries(get)) { d[APPLE_FIELDS[k]] = (d[APPLE_FIELDS[k]] || 0) + n; d.discovered[k] = true; }
-      tx.update(ur, { data: d, rev: v.rev + 1 });
-      tx.update(tr, { unapplied: arrayRemove(me) });
-    });
-  } catch (e) { toast(e.message); }
-  applying.delete(t.id);
-}
-$("add-ok").onclick = async () => {
-  const id = cur && cur.id; am2.style.display = "none"; if (!id) return;
-  try { await updateDoc(doc(db, "trades", id), { [`offers.${me}.${addType}`]: addQty > 0 ? addQty : deleteField(), ready: {}, confirm: {}, ok: {} }); }
-  catch (e) { toast(e.message); }
-};
 
 /* ---------- invité automatique + Google One Tap ---------- */
 const GCLIENT = "357477145806-jagr0f20lv71eef6tj61e37lhdv4bd4h.apps.googleusercontent.com";
-let manualLogout = false, gisReady = false;
+let gisReady = false;
 function promptOneTap() {
   if (!auth.currentUser || !auth.currentUser.isAnonymous) return; // seulement pour les invités
   const go = () => {
@@ -556,7 +727,7 @@ async function onGoogleCredential(resp) {
         await linkWithCredential(u, cred); // l'invité garde son compte et sa progression
         try {
           const pic = JSON.parse(atob(resp.credential.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).picture;
-          if (pic && !myPhoto) { await updateDoc(doc(db, "users", u.uid), { photo: pic }); myPhoto = pic; setAvatar(pic); }
+          if (pic && !myPhoto) { await api("/me/photo", "PATCH", { photo: pic }); myPhoto = pic; setAvatar(pic); }
         } catch (e) {}
         toast("Google account linked!");
       } catch (e) {
@@ -569,38 +740,19 @@ async function onGoogleCredential(resp) {
 
 /* ---------- session ---------- */
 onAuthStateChanged(auth, async user => {
-  unsubs.forEach(u => u()); unsubs = []; loaded = false; inbox = []; outbox = []; stopTrading();
+  advStop(false); stopTrading(); setFast(false); trades = []; shown.forEach(el => el.remove()); shown.clear();
   if (!user) {
-    window.__fcUser = ""; try { setMode(window.__fcMode || "menu"); } catch (e) {}
+    window.__fcUser = ""; try { window.setMode(window.__fcMode || "menu"); } catch (e) {}
     if (me) { me = null; try { leaveGame(); } catch (e) {} }
     ov.style.display = "flex"; return;
   }
   manualLogout = false;
-  try { if (!(await ensureProfile(user))) return; } catch (e) { err(e); ov.style.display = "flex"; return; }
-  me = user.uid; beat(); const hb = setInterval(beat, 45000); unsubs.push(() => clearInterval(hb));
-    unsubs.push(onSnapshot(query(collection(db, "trades"), where("unapplied", "array-contains", me)), s => {
-    s.docs.forEach(d => { const t = { id: d.id, ...d.data() }; if (t.status === "completed") applyTrade(t); });
-  }));
-  unsubs.push(onSnapshot(doc(db, "users", me), s => {
-    if (!s.exists()) return; const v = s.data();
-    if (!loaded || (!saving && v.rev > rev)) {
-      try { applyRemote(v); loaded = true; ov.style.display = "none"; boot.style.display = "none"; promptOneTap(); } catch (e) { err(e); console.error(e); }
-    }
-  }, e => { err(e); console.error(e); }));
-  unsubs.push(onSnapshot(query(collection(db, "trades"), where("to", "==", me), where("status", "==", "pending")), s => {
-    inbox = s.docs.map(d => ({ id: d.id, ...d.data() })); renderIncoming(inbox);
-  }));
-  unsubs.push(onSnapshot(query(collection(db, "trades"), where("from", "==", me), where("status", "==", "pending")), s => {
-    outbox = s.docs.map(d => ({ id: d.id, ...d.data() }));
-  }));
-  ["to", "from"].forEach(k => unsubs.push(onSnapshot(query(collection(db, "trades"), where(k, "==", me), where("status", "==", "accepted")), s => {
-    s.docChanges().forEach(c => {
-      if (c.type !== "added") return; const t = { id: c.doc.id, ...c.doc.data() };
-      if (t.createdAt && Date.now() - t.createdAt.toMillis() < 1800000) openTrading(t);
-    });
-  })));
+  let v;
+  try { v = await ensureProfile(user); if (!v) return; } catch (e) { err(e); ov.style.display = "flex"; return; }
+  if (v.banned_until) { srv.offset = v.now - Date.now(); showBan(v.banned_until, v.now); return; }
+  me = user.uid; srv.offset = v.now - Date.now();
+  try { applyRemote(v); ov.style.display = "none"; boot.style.display = "none"; promptOneTap(); } catch (e) { err(e); console.error(e); }
 });
-
 
 // interface du jeu (logos, popups sans pause, autosell...) : chargée automatiquement
 if (!window.__gameUI) { window.__gameUI = true; const g = document.createElement("script"); g.src = "game-ui.js"; document.head.appendChild(g); }

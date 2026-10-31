@@ -1,4 +1,4 @@
-  // witch-fuse.js : Witch Fuse Machine (machine sur la map, popup "E", vidéo, dimension de fusion avec glisser-déposer)
+// witch-fuse.js : Witch Fuse Machine (machine sur la map, popup "E", vidéo, dimension de fusion avec glisser-déposer)
   // Script classique : à charger après le script du jeu (même dossier que index.html).
   (function () {
     const MACHINE_IMG = "Witch%20Fuze%20Machine.png";
@@ -104,8 +104,8 @@
     /* ---------- données : pommes dans la fuse (sauvegardées dans le compte : acc.fuse) ---------- */
     const fuseArr = () => { const a = acc(); if (!a) return []; if (!Array.isArray(a.fuse)) a.fuse = []; return a.fuse; };
     const stockOf = t => { const a = acc(); return a ? (a[APPLE_FIELDS[t]] || 0) : 0; };
-    function persist() { if (window.autosellReset) window.autosellReset(); saveAllAccounts(); } // reset : l'Autosell ne doit pas revendre une pomme rendue
-    function commitAdd(t) { const a = acc(), f = APPLE_FIELDS[t]; a[f] = (a[f] || 0) - 1; fuseArr().push(t); persist(); }
+    // le serveur est maître : l'écran change tout de suite, le serveur confirme (ou corrige) ensuite
+    function commitAdd(t) { const a = acc(), f = APPLE_FIELDS[t]; a[f] = (a[f] || 0) - 1; fuseArr().push(t); window.FC.act("/fuse/add", { type: t }).catch(() => {}); }
 
     /* ---------- inventaire défilant ---------- */
     function listItems() {
@@ -265,7 +265,7 @@
       const el = slots.children[i], ir = el && el.querySelector("img") ? el.querySelector("img").getBoundingClientRect() : null, mr = machineRect();
       const fx = ir ? ir.left + ir.width / 2 : mr.left + mr.width / 2, fy = ir ? ir.top + ir.height / 2 : mr.top + mr.height / 2;
       const t = arr.splice(i, 1)[0], a = acc(), f = APPLE_FIELDS[t];
-      a[f] = (a[f] || 0) + 1; persist(); slotSig = ""; refreshDim();
+      a[f] = (a[f] || 0) + 1; window.FC.act("/fuse/remove", { index: i }).catch(() => {}); slotSig = ""; refreshDim();
       const fl = document.createElement("div"); fl.id = "wf-drag"; fl.style.left = fx + "px"; fl.style.top = fy + "px"; fl.style.transform = "translate(-50%,-50%) scale(.4)";
       const im = new Image(); im.src = IMG_FRUITS[t]; im.draggable = false; fl.appendChild(im); document.body.appendChild(fl);
       fl.style.transition = "left .6s ease-out,top .6s ease-out,transform .6s ease-out,opacity .6s ease-in"; void fl.offsetWidth;
@@ -326,11 +326,7 @@
     const w = RESULTS.map(r => Math.exp(-Math.pow(Math.log10(priceOf(r)) - V, 2) / (2 * SIGMA * SIGMA))), sum = w.reduce((a, b) => a + b, 0);
     return [{ t: null, p: 1 - ok }, ...RESULTS.map((r, i) => ({ t: r, p: ok * w[i] / sum }))];
   }
-  function rollFuse(types) {
-    let x = Math.random();
-    for (const o of oddsFor(types)) { x -= o.p; if (x < 0) return o.t; }
-    return null;
-  }
+  // (le tirage du résultat est fait par le serveur : /fuse/go)
 
   const fcss = document.createElement("style");
   fcss.textContent = `#wf-go{position:absolute;right:20px;bottom:20px;display:none;border:0;border-radius:12px;padding:16px 26px;background:#27ae60;color:#fff;font-size:14px;cursor:pointer;z-index:3;animation:wf-pulse 1s ease-in-out infinite}
@@ -372,24 +368,23 @@
     if (arr.length !== MAX) return say("Put 4 apples in the fuse");
     const fee = feeOf(arr);
     if ((a.money || 0) < fee) return say("Not enough money");
-    a.money -= fee; // 1 % de la valeur des pommes déposées
     busy = true; go.style.display = "none"; slots.style.display = "none";
-    const t = rollFuse(arr.slice());
-    a.fuse = []; // les 4 pommes sont consommées
-    if (t) { a[APPLE_FIELDS[t]] = (a[APPLE_FIELDS[t]] || 0) + 1; a.discovered = a.discovered || {}; a.discovered[t] = true; }
-    persist(); slotSig = "";
-    const m = $("wf-machine");
-    shakeAnim = m.animate([{ rotate: "-1.5deg", translate: "-4px 0" }, { rotate: "1.5deg", translate: "4px 0" }], { duration: 110, iterations: Infinity, direction: "alternate" });
-    m.classList.add("drop");
-    setTimeout(() => {
-      if (shakeAnim) shakeAnim.cancel(); shakeAnim = null; m.classList.remove("drop");
-      flash.classList.remove("on"); void flash.offsetWidth; flash.classList.add("on");
+    // le serveur prélève les frais (1 % de la valeur), tire le résultat et le met dans l'inventaire
+    window.FC.act("/fuse/go", {}).then(r => {
+      const t = r.result || null; slotSig = "";
+      const m = $("wf-machine");
+      shakeAnim = m.animate([{ rotate: "-1.5deg", translate: "-4px 0" }, { rotate: "1.5deg", translate: "4px 0" }], { duration: 110, iterations: Infinity, direction: "alternate" });
+      m.classList.add("drop");
       setTimeout(() => {
-        if (dimOpen) return showResult(t);
-        busy = false; // dimension quittée pendant la fusion : le résultat est déjà dans l'inventaire
-        if (t) showAdvancedMsg(`${T("You got")} ${T(APPLE_NAMES[t])}!`, "top", { color: "#4ADE80" }); else say("You got nothing");
-      }, 250);
-    }, 2400);
+        if (shakeAnim) shakeAnim.cancel(); shakeAnim = null; m.classList.remove("drop");
+        flash.classList.remove("on"); void flash.offsetWidth; flash.classList.add("on");
+        setTimeout(() => {
+          if (dimOpen) return showResult(t);
+          busy = false; // dimension quittée pendant la fusion : le résultat est déjà dans l'inventaire
+          if (t) showAdvancedMsg(`${T("You got")} ${T(APPLE_NAMES[t])}!`, "top", { color: "#4ADE80" }); else say("You got nothing");
+        }, 250);
+      }, 2400);
+    }).catch(() => { busy = false; }); // erreur : message déjà affiché, la fusion reste telle quelle
   }
   go.onclick = startFuse;
   /* ---------- pommes + pourcentages au-dessus du titre, bouton = prix ---------- */
