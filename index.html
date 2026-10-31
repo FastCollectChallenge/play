@@ -681,18 +681,34 @@ body {
             35: "https://static.wikia.nocookie.net/stealabr/images/9/96/35x_Luck.png/revision/latest/scale-to-width/360?cb=20260719014843" };
 
         const SHOP_PRODUCTS = [
-            { id: "pot_x2_30", type: "x2", multiplier: 2, duration: 30, price: 1000 },
-            { id: "pot_x2_60", type: "x2", multiplier: 2, duration: 60, price: 1750 },
-            { id: "pot_x4_30", type: "x4", multiplier: 4, duration: 30, price: 2000 },
-            { id: "pot_x4_60", type: "x4", multiplier: 4, duration: 60, price: 3500 },
-            { id: "pot_x6_25", type: "x6", multiplier: 6, duration: 25, price: 3250 },
-            { id: "pot_x6_45", type: "x6", multiplier: 6, duration: 45, price: 7000 },
-            { id: "pot_x8_20", type: "x8", multiplier: 8, duration: 20, price: 4000 },
-            { id: "pot_x8_40", type: "x8", multiplier: 8, duration: 40, price: 7500 },
-            { id: "pot_x8_60", type: "x8", multiplier: 8, duration: 60, price: 10000 },
-            { id: "pot_x10_15", type: "x10", multiplier: 10, duration: 15, price: 4500 },
-            { id: "pot_x10_30", type: "x10", multiplier: 10, duration: 30, price: 7500 },
-            { id: "pot_x10_60", type: "x10", multiplier: 10, duration: 60, price: 15000 }
+            { id: "pot_x2_30", type: "x2", multiplier: 2, duration: 30, price: 700 },
+            { id: "pot_x2_60", type: "x2", multiplier: 2, duration: 60, price: 1500 },
+            { id: "pot_x4_30", type: "x4", multiplier: 4, duration: 30, price: 1400 },
+            { id: "pot_x4_60", type: "x4", multiplier: 4, duration: 60, price: 2500 },
+            { id: "pot_x6_25", type: "x6", multiplier: 6, duration: 25, price: 2000 },
+            { id: "pot_x6_45", type: "x6", multiplier: 6, duration: 45, price: 5000 },
+            { id: "pot_x8_20", type: "x8", multiplier: 8, duration: 20, price: 2750 },
+            { id: "pot_x8_40", type: "x8", multiplier: 8, duration: 40, price: 4500 },
+            { id: "pot_x8_60", type: "x8", multiplier: 8, duration: 60, price: 6500 },
+            { id: "pot_x10_15", type: "x10", multiplier: 10, duration: 15, price: 3000 },
+            { id: "pot_x10_30", type: "x10", multiplier: 10, duration: 30, price: 6000 },
+            { id: "pot_x10_60", type: "x10", multiplier: 10, duration: 60, price: 10000 }
+            { id: "pot_x12_30", type: "x12", multiplier: 12, duration: 30, price: 7500 },
+            { id: "pot_x12_60", type: "x12", multiplier: 12, duration: 60, price: 15000 },
+            { id: "pot_x15_20", type: "x15", multiplier: 15, duration: 20, price: 6500 },
+            { id: "pot_x15_40", type: "x15", multiplier: 15, duration: 40, price: 12000 },
+            { id: "pot_x15_60", type: "x15", multiplier: 15, duration: 60, price: 17500 },
+            { id: "pot_x20_15", type: "x20", multiplier: 20, duration: 15, price: 8000 },
+            { id: "pot_x20_30", type: "x20", multiplier: 20, duration: 30, price: 15000 },
+            { id: "pot_x20_60", type: "x20", multiplier: 20, duration: 60, price: 25000 },
+            { id: "pot_x25_10", type: "x25", multiplier: 25, duration: 10, price: 10000 },
+            { id: "pot_x25_20", type: "x25", multiplier: 25, duration: 20, price: 20000 },
+            { id: "pot_x25_40", type: "x25", multiplier: 25, duration: 40, price: 35000 },
+            { id: "pot_x25_60", type: "x25", multiplier: 25, duration: 60, price: 50000 },
+            { id: "pot_x30_10", type: "x30", multiplier: 30, duration: 10, price: 30000 }
+            { id: "pot_x30_20", type: "x30", multiplier: 30, duration: 20, price: 60000 },
+            { id: "pot_x30_40", type: "x30", multiplier: 30, duration: 40, price: 100000 },
+            { id: "pot_x30_60", type: "x30", multiplier: 30, duration: 60, price: 150000 }
         ];
 
         let accounts = { "Default": { money: 0, redApples: 0, greenApples: 0, goldenApples: 0, diamondApples: 0, candyApples: 0, lavaApples: 0, galaxyApples: 0, darkApples: 0, salhiniApples: 0, bloodmoonApples: 0, moonyApples: 0, potions: {} } };
@@ -1253,7 +1269,7 @@ body {
                     let bloodmoonChance = 0.00000666 * luckMultiplier;
                     let darkChance = 0.001 * luckMultiplier;
                     let salhiniChance = 0;
-                    let moonyChance = 0.0001 * luckMultiplier;
+                    let moonyChance = 0.00025 * luckMultiplier;
                     let galaxyChance = 0.003 * luckMultiplier;
                     let lavaChance = 0.005 * luckMultiplier;
                     let candyChance = 0.01 * luckMultiplier;
