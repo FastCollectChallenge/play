@@ -371,7 +371,7 @@ The main mode with no time limit. Collected apples are stored in an inventory an
 
 </div>
 
-<script>
+<<script>
     let currentLang = "fr";
 
     function toggleLanguage() {
@@ -385,6 +385,8 @@ The main mode with no time limit. Collected apples are stored in an inventory an
             }
         });
     }
+
+    if ((localStorage.getItem("fc_lang") || "en") === "en") toggleLanguage();
 </script>
 </body>
 </html>

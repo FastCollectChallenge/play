@@ -47,8 +47,15 @@
             height: 64px;
             object-fit: contain;
         }
-        h1 {
+        .title-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px 22px;
             margin: 0 90px 10px 0;
+        }
+        h1 {
+            margin: 0;
             font-size: 32px;
             font-weight: 800;
             letter-spacing: -.03em;
@@ -58,6 +65,37 @@
             background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+        .return-btn {
+            position: relative;
+            display: inline-block;
+            padding: 5px 16px;
+            border-radius: 999px;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: -.03em;
+            line-height: 1.2;
+            text-decoration: none;
+            background: linear-gradient(90deg, #ffffff, #a5b4fc 50%, #67e8f9);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            transition: filter .2s ease;
+        }
+        .return-btn::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            padding: 1px;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #ffffff, #a5b4fc 50%, #67e8f9);
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+        .return-btn:hover { filter: brightness(1.2); }
+        .return-btn:focus-visible { outline: 2px solid #a5b4fc; outline-offset: 4px; }
         .last-updated {
             margin-bottom: 30px;
             font-size: 14px;
@@ -90,7 +128,9 @@
         @media (max-width: 600px) {
             .container { padding: 28px 22px; }
             .logo { top: 24px; right: 22px; width: 52px; height: 52px; }
-            h1 { font-size: 26px; margin-right: 70px; }
+            .title-row { margin-right: 70px; }
+            h1 { font-size: 26px; }
+            .return-btn { font-size: 14px; }
         }
     </style>
 </head>
@@ -99,7 +139,10 @@
 <div class="container">
     <img src="https://raw.githubusercontent.com/FastCollectChallenge/play/main/icons/Fast%20Collect%20Challenge%20NBG%20logo.png" alt="Fast Collect Challenge Logo" class="logo">
 
-    <h1>Privacy Policy</h1>
+    <div class="title-row">
+        <h1>Privacy Policy</h1>
+        <a class="return-btn" href="/">Return to the game</a>
+    </div>
     <div class="last-updated">Last updated: October 31, 2026</div>
 
     <p>Fast Collect Challenge ("we", "our", or "us") operates the website and game hosted at <strong>fastcollectchallenge.com</strong>. This Privacy Policy explains what personal data we collect when you play, how we use it, who it is shared with, and the choices you have.</p>
