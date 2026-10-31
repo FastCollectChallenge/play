@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fast Collect Challenge - Documentation</title>
+    <style>
+        @font-face{font-family:'Google Sans';src:url('/GoogleSans.ttf') format('truetype');font-weight:100 900;font-display:swap}
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background-color: #050505;
+            color: #f5f6fa;
+            font-family: 'Nunito', sans-serif;
+            padding: 30px 15px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .pixel-font { font-family: 'Press Start 2P', cursive !important; }
+
+        .doc-container {
+            max-width: 1000px;
+            width: 100%;
+            background: #11141a;
+            border: 5px solid #f1c40f;
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: 0 0 35px rgba(241, 196, 15, 0.25);
+            position: relative;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 25px;
+            border-bottom: 2px dashed rgba(241, 196, 15, 0.3);
+            padding-bottom: 20px;
+        }
+
+        .back-btn {
+            background: #f1c40f;
+            color: #000;
+            padding: 12px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 900;
+            font-size: 10px;
+            transition: transform 0.2s, background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .back-btn:hover { transform: scale(1.05); background: #f39c12; }
+
+        .lang-switch-btn {
+            background: #2f3640;
+            color: #f1c40f;
+            border: 2px solid #f1c40f;
+            padding: 10px 18px;
+            border-radius: 25px;
+            cursor: poGoogle Sans;
+            font-weight: 900;
+            font-size: 11px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .lang-switch-btn:hover {
+            background: #f1c40f;
+            color: #000;
+            transform: scale(1.05);
+        }
+
+        h1 {
+            color: #f1c40f;
+            font-size: 22px;
+            text-align: center;
+            margin: 10px 0 25px 0;
+            text-shadow: 3px 3px 0px #000;
+            line-height: 1.5;
+        }
+
+        .nav-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 30px;
+            background: rgba(0,0,0,0.4);
+            padding: 15px;
+            border-radius: 12px;
+        }
+        .nav-summary a {
+            color: #7ed6df;
+            text-decoration: none;
+            font-size: 9px;
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
+            border: 1px solid rgba(126, 214, 223, 0.3);
+            transition: background 0.2s;
+        }
+        .nav-summary a:hover { background: rgba(126, 214, 223, 0.2); }
+
+        .doc-section {
+            margin-bottom: 35px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 15px;
+            padding: 22px;
+        }
+
+        h2 {
+            color: #4ADE80;
+            font-size: 14px;
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #4ADE80;
+            padding-bottom: 8px;
+        }
+
+        h3 {
+            color: #f1c40f;
+            font-size: 11px;
+            margin-top: 20px;
+        }
+
+        p, li {
+            font-size: 14px;
+            line-height: 1.7;
+            color: #dcdde1;
+        }
+        ul { padding-left: 20px; }
+
+        .table-responsive { overflow-x: auto; margin-top: 15px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+        th, td {
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        th {
+            background-color: rgba(241, 196, 15, 0.15);
+            color: #f1c40f;
+            font-size: 9px;
+        }
+        tr:hover { background-color: rgba(255,255,255,0.03); }
+
+        .rarity-common { color: #145A32; font-weight: bold; }
+        .rarity-rare { color: #3498DB; font-weight: bold; }
+        .rarity-epic { color: #B45BDE; font-weight: bold; }
+        .rarity-godly {
+            background: linear-gradient(90deg,#ff4242,#ffb52e,#fff15a,#47e66b,#48a9ff,#b75cff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+        }
+        .rarity-secret {
+            background: linear-gradient(90deg,#000 0%,#fff 50%,#000 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+        }
+        .rarity-admin {
+            background: linear-gradient(90deg,#ff2626,#ffd21f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+        }
+        body{background:radial-gradient(1200px 700px at 15% 10%,rgba(124,92,255,.22),transparent 60%),radial-gradient(900px 600px at 90% 90%,rgba(34,211,238,.16),transparent 60%),linear-gradient(180deg,#0a0d14,#0d1220) fixed;color:#e8ecf4;font-family:'Google Sans',system-ui,sans-serif}
+.pixel-font{font-family:'Google Sans',system-ui,sans-serif!important;font-weight:800}
+.doc-container{background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.10);border-radius:24px;box-shadow:0 20px 50px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(14px)}
+.top-bar{border-bottom:1px solid rgba(255,255,255,.12)}
+.back-btn{background:linear-gradient(135deg,#7c5cff,#22d3ee);color:#fff;border-radius:12px;font-size:12px}
+.back-btn:hover{background:linear-gradient(135deg,#7c5cff,#22d3ee);filter:brightness(1.12)}
+.lang-switch-btn{background:rgba(255,255,255,.08);color:#e8ecf4;border:1px solid rgba(255,255,255,.22);font-size:12px}
+.lang-switch-btn:hover{background:rgba(124,92,255,.35);color:#fff}
+h1{font-size:30px;letter-spacing:-.03em;text-shadow:none;background:linear-gradient(90deg,#fff,#a5b4fc 50%,#67e8f9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.nav-summary{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);border-radius:16px}
+.nav-summary a{color:#a5b4fc;font-size:12px;font-weight:700;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px}
+.nav-summary a:hover{background:rgba(124,92,255,.3);color:#fff}
+.doc-section{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);border-radius:20px}
+h2{color:#a5b4fc;font-size:18px;border-bottom:1px solid rgba(124,92,255,.5)}
+h3{color:#67e8f9;font-size:14px}
+p,li{color:#c7cedd}
+th{background:rgba(124,92,255,.2);color:#e8ecf4;font-size:11px}
+th,td{border-bottom:1px solid rgba(255,255,255,.08)}
+tr:hover{background:rgba(124,92,255,.10)}
+.rarity-common{color:#4ade80}
+.rarity-secret{background:linear-gradient(90deg,#94a3b8,#fff 50%,#94a3b8);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    </style>
+</head>
+<body>
+
+<div class="doc-container">
+    <div class="top-bar">
+        <a href="/" class="back-btn pixel-font"><span data-fr="RETOUR AU JEU" data-en="BACK TO GAME">RETOUR AU JEU</span></a>
+        <button class="lang-switch-btn pixel-font" onclick="toggleLanguage()"><span id="lang-btn-label">English</span></button>
+    </div>
+
+    <h1 class="pixel-font" data-fr="DOCUMENTATION DU JEU" data-en="GAME DOCUMENTATION">DOCUMENTATION DU JEU</h1>
+
+    <div class="nav-summary pixel-font">
+        <a href="#overview" data-fr="Presentation" data-en="Overview">Presentation</a>
+        <a href="#modes" data-fr="Modes de Jeu" data-en="Game Modes">Modes de Jeu</a>
+        <a href="#apples" data-fr="Pommes et Raretes" data-en="Apples and Rarities">Pommes et Raretes</a>
+        <a href="#shop" data-fr="Boutique et Potions" data-en="Shop and Potions">Boutique et Potions</a>
+        <a href="#trade" data-fr="Systeme d'Echange" data-en="Trading System">Systeme d'Echange</a>
+        <a href="#witch" data-fr="Fusion de Sorciere" data-en="Witch Fuse">Fusion de Sorciere</a>
+        <a href="#accounts" data-fr="Comptes, Firestore et Hors-Ligne" data-en="Accounts, Firestore and Offline">Comptes, Firestore et Hors-Ligne</a>
+        <a href="#events" data-fr="Evenements et Admin" data-en="Events and Admin">Evenements et Admin</a>
+    </div>
+
+    <div class="doc-section" id="overview">
+        <h2 class="pixel-font" data-fr="1. Presentation du Jeu" data-en="1. Game Overview">1. Presentation du Jeu</h2>
+        <p data-fr="Fast Collect Challenge est un jeu développé par FelixRouge de StackInc. en 2024 comme étant un mini-jeu sur Emoji Games. Amélioré en 2025, Fast Collect Challenge devient un jeu à part entière hébergé sur navigateur. En 2026, le jeu devint hébergé sur des serveurs de Google Firebase et sur le domaine fastcollectchallenge.com.."
+           data-en="Fast Collect Challenge is a game developed by FelixRouge of StackInc. in 2024, originally as a mini-game on Emoji Games. Enhanced in 2025, Fast Collect Challenge became a standalone browser-based game. In 2026, the game began hosting on Google Firebase servers and the domain fastcollectchallenge.com.">
+           Fast Collect Challenge est un jeu développé par FelixRouge de StackInc. en 2024 comme étant un mini-jeu sur Emoji Games. Amélioré en 2025, Fast Collect Challenge devient un jeu à part entière hébergé sur navigateur. En 2026, le jeu devint hébergé sur des serveurs de Google Firebase et sur le domaine fastcollectchallenge.com.
+        </p>
+    </div>
+
+    <div class="doc-section" id="modes">
+        <h2 class="pixel-font" data-fr="2. Modes de Jeu" data-en="2. Game Modes">2. Modes de Jeu</h2>
+        
+        <h3 class="pixel-font" data-fr="Mode Arcade" data-en="Arcade Mode">Mode Arcade</h3>
+        <p data-fr="Un défi de ramasser le plus de pommes en 60 secondes avec une Pomme Rouge comptant comme 1pt, et une Pomme Verte comptant comme 3pts"
+           data-en="A challenge to collect the most apples in 60 seconds, with a red apple counting as 1 point and a green apple counting as 3 points.">
+           Un défi de ramasser le plus de pommes en 60 secondes avec une Pomme Rouge comptant comme 1pt, et une Pomme Verte comptant comme 3pts
+        </p>
+
+        <h3 class="pixel-font" data-fr="Mode Aventure" data-en="Adventure Mode">Mode Aventure</h3>
+        <p data-fr="Le mode principal sans limite de temps. Les pommes récoltées sont stockés dans un Inventaire et inscrite dans l'Index, des potions peuvent être achetées dans le Shop. Possiblité d'échanger de pommes avec d'autres joueurs. "
+           data-en="
+The main mode with no time limit. Collected apples are stored in an inventory and recorded in the index; potions can be purchased in the shop. Apples can be traded with other players..">
+           Le mode principal sans limite de temps. Les pommes récoltées sont stockés dans un Inventaire et inscrite dans l'Index, des potions peuvent être achetées dans le Shop. Possiblité d'échanger de pommes avec d'autres joueurs.
+        </p>
+    </div>
+
+    <div class="doc-section" id="apples">
+        <h2 class="pixel-font" data-fr="3. Catalogue des Pommes" data-en="3. Apple Catalog">3. Catalogue des Pommes</h2>
+        <p data-fr="Voici le tableau complet de toutes les pommes disponibles en jeu, classées par rarete, prix de revente et chances d'apparition :"
+           data-en="Below is the complete catalog of all apples in the game, categorized by rarity, resale value, and spawn chance:">
+           Voici le tableau complet de toutes les pommes disponibles en jeu, classées par rarete, prix de revente et chances d'apparition :
+        </p>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="pixel-font" data-fr="Nom de la Pomme" data-en="Apple Name">Nom de la Pomme</th>
+                        <th class="pixel-font" data-fr="Rarete" data-en="Rarity">Rarete</th>
+                        <th class="pixel-font" data-fr="Prix de Vente ($)" data-en="Sell Price ($)">Prix de Vente ($)</th>
+                        <th class="pixel-font" data-fr="Chance d'apparition" data-en="Spawn Chance">Chance d'apparition</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>Red Apple</td><td><span class="rarity-common">Common</span></td><td>$1</td><td>Baseline</td></tr>
+                    <tr><td>Green Apple</td><td><span class="rarity-common">Common</span></td><td>$3</td><td>Base luck (5% / 20%)</td></tr>
+                    <tr><td>Golden Apple</td><td><span class="rarity-rare">Rare</span></td><td>$7</td><td>10.0%</td></tr>
+                    <tr><td>Diamond Apple</td><td><span class="rarity-rare">Rare</span></td><td>$15</td><td>5.0%</td></tr>
+                    <tr><td>Candy Apple</td><td><span class="rarity-epic">Epic</span></td><td>$50</td><td>1.0%</td></tr>
+                    <tr><td>Lava Apple</td><td><span class="rarity-epic">Epic</span></td><td>$200</td><td>0.5%</td></tr>
+                    <tr><td>Galaxy Apple</td><td><span class="rarity-epic">Epic</span></td><td>$500</td><td>0.3%</td></tr>
+                    <tr><td>Dark Apple</td><td><span class="rarity-epic">Epic</span></td><td>$1,000 (1K)</td><td>0.1%</td></tr>
+                    <tr><td>Cheezy Apple</td><td><span class="rarity-godly">Godly</span></td><td>$5,000 (5K)</td><td>0.04% (1 / 2,500)</td></tr>
+                    <tr><td>Moony Apple</td><td><span class="rarity-epic">Epic</span></td><td>$50,000 (50K)</td><td>0.01%</td></tr>
+                    <tr><td>Sand Apple</td><td><span class="rarity-godly">Godly</span></td><td>$50,000 (50K)</td><td>0.01% (1 / 10,000)</td></tr>
+                    <tr><td>Amethyst Apple</td><td><span class="rarity-secret">Secret</span></td><td>$250,000 (250K)</td><td>0.002% (1 / 50,000)</td></tr>
+                    <tr><td>Ice Apple</td><td><span class="rarity-secret">Secret</span></td><td>$600,000 (600K)</td><td>0.00085%</td></tr>
+                    <tr><td>Sapphire Apple</td><td><span class="rarity-secret">Secret</span></td><td>$1,250,000 (1.25M)</td><td>0.0004%</td></tr>
+                    <tr><td>Rainbow Apple</td><td><span class="rarity-secret">Secret</span></td><td>$3,000,000 (3M)</td><td>0.00017%</td></tr>
+                    <tr><td>Bloodmoon Apple</td><td><span class="rarity-secret">Secret</span></td><td>$6,666,666 (6.6M)</td><td>0.000666%</td></tr>
+                    <tr><td>Apple Canneloni</td><td><span class="rarity-secret">Secret</span></td><td>$250,000,000 (250M)</td><td>0.000002% (1 / 50,000,000)</td></tr>
+                    <tr><td>Salhini Appelini</td><td><span class="rarity-admin">Admin</span></td><td>$100,000,000 (100M)</td><td>Admin Event Only</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="doc-section" id="shop">
+        <h2 class="pixel-font" data-fr="4. Boutique et Potions de Chance" data-en="4. Shop and Luck Potions">4. Boutique et Potions de Chance</h2>
+        <p data-fr="Dans la boutique, vous pouvez acheter des potions pour multiplier temporairement vos chances d'obtenir des pommes rares. Les potions peuvent également être revendues à l'inventaire avec une décote de 20% (remboursement à 80%)."
+           data-en="In the Shop, you can purchase potions to temporarily multiply your luck for rare spawns. Potions can also be resold from the inventory for an 80% refund.">
+           Dans la boutique, vous pouvez acheter des potions pour multiplier temporairement vos chances d'obtenir des pommes rares. Les potions peuvent également être revendues à l'inventaire avec une décote de 20% (remboursement à 80%).
+        </p>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="pixel-font" data-fr="Potion" data-en="Potion">Potion</th>
+                        <th class="pixel-font" data-fr="Multiplicateur" data-en="Multiplier">Multiplicateur</th>
+                        <th class="pixel-font" data-fr="Duree" data-en="Duration">Duree</th>
+                        <th class="pixel-font" data-fr="Prix Achat" data-en="Buy Price">Prix Achat</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>Potion x2 (30s)</td><td>x2 Luck</td><td>30 secondes</td><td>$1,000</td></tr>
+                    <tr><td>Potion x2 (60s)</td><td>x2 Luck</td><td>60 secondes</td><td>$1,750</td></tr>
+                    <tr><td>Potion x4 (30s)</td><td>x4 Luck</td><td>30 secondes</td><td>$2,000</td></tr>
+                    <tr><td>Potion x4 (60s)</td><td>x4 Luck</td><td>60 secondes</td><td>$3,500</td></tr>
+                    <tr><td>Potion x6 (25s)</td><td>x6 Luck</td><td>25 secondes</td><td>$3,250</td></tr>
+                    <tr><td>Potion x6 (45s)</td><td>x6 Luck</td><td>45 secondes</td><td>$7,000</td></tr>
+                    <tr><td>Potion x8 (20s)</td><td>x8 Luck</td><td>20 secondes</td><td>$4,000</td></tr>
+                    <tr><td>Potion x8 (40s)</td><td>x8 Luck</td><td>40 secondes</td><td>$7,500</td></tr>
+                    <tr><td>Potion x8 (60s)</td><td>x8 Luck</td><td>60 secondes</td><td>$10,000</td></tr>
+                    <tr><td>Potion x10 (15s)</td><td>x10 Luck</td><td>15 secondes</td><td>$4,500</td></tr>
+                    <tr><td>Potion x10 (30s)</td><td>x10 Luck</td><td>30 secondes</td><td>$7,500</td></tr>
+                    <tr><td>Potion x10 (60s)</td><td>x10 Luck</td><td>60 secondes</td><td>$15,000</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="doc-section" id="trade">
+        <h2 class="pixel-font" data-fr="5. Systeme d'Echange" data-en="5. Trading System">5. Systeme d'Echange </h2>
+        <p data-fr="Grâce au module de transaction interconnecté avec Firestore, les joueurs peuvent échanger des pommes ou des objets entre leurs comptes ou avec d'autres utilisateurs connectés en ligne de manière sécurisée."
+           data-en="Thanks to the transaction module interconnected with Firestore, players can securely trade apples or items between their accounts or with other online users.">
+           Grâce au module de transaction interconnecté avec Firestore, les joueurs peuvent échanger des pommes ou des objets entre leurs comptes ou avec d'autres utilisateurs connectés en ligne de manière sécurisée.
+        </p>
+    </div>
+
+    <div class="doc-section" id="witch">
+        <h2 class="pixel-font" data-fr="6. Witch Fuse" data-en="6. Witch Fuse">6. Witch Fuse</h2>
+        <p data-fr="Le module de fusion magique permet de combiner plusieurs pommes ou ingrédients de votre inventaire selon des recettes secrètes pour tenter d'obtenir des objets uniques ou des paliers de rareté supérieurs."
+           data-en="The magic fusion module allows you to combine multiple apples or items from your inventory using secret recipes to attempt obtaining unique items or higher rarity tiers.">
+           Le module de fusion magique permet de combiner plusieurs pommes ou ingrédients de votre inventaire selon des recettes secrètes pour tenter d'obtenir des objets uniques ou des paliers de rareté supérieurs.
+        </p>
+    </div>
+
+    <div class="doc-section" id="accounts">
+        <h2 class="pixel-font" data-fr="7. Comptes, Firestore et Mode Hors-Ligne" data-en="7. Accounts, Firestore and Offline Mode">7. Comptes, Firestore et Mode Hors-Ligne</h2>
+        <p data-fr="Le jeu est connecte a Firestore (Firebase) pour gérer l'authentification et la sauvegarde des profils en ligne. Vous pouvez vous connecter par les moyens suivants :"
+           data-en="The game is connected to Firestore (Firebase) to handle online profile authentication and cloud saves. You can log in using the following methods:">
+           Le jeu est connecte a Firestore (Firebase) pour gérer l'authentification et la sauvegarde des profils en ligne. Vous pouvez vous connecter par les moyens suivants :
+        </p>
+        <ul>
+            <li data-fr="Nom d'utilisateur (Username)" data-en="Username">Nom d'utilisateur (Username)</li>
+            <li data-fr="Adresse email et mot de passe" data-en="Email and password">Adresse email et mot de passe</li>
+            <li data-fr="Compte Google" data-en="Google account">Compte Google</li>
+            <li data-fr="Compte GitHub" data-en="GitHub account">Compte GitHub</li>
+        </ul>
+        <p data-fr="Concernant les fonctions d'exportation et d'importation de clés (Export Key / Import Key), elles sont prévues pour une utilisation hors-ligne. Elles permettent de générer ou de charger une clé locale de secours pour continuer à jouer et conserver votre progression sans connexion Wi-Fi."
+           data-en="Regarding the export and import key functions (Export Key / Import Key), they are designed for offline use. They allow you to generate or load a local backup key to continue playing and keep your progress without a Wi-Fi connection.">
+           Concernant les fonctions d'exportation et d'importation de clés (Export Key / Import Key), elles sont prévues pour une utilisation hors-ligne. Elles permettent de générer ou de charger une clé locale de secours pour continuer à jouer et conserver votre progression sans connexion Wi-Fi.
+        </p>
+    </div>
+
+    <div class="doc-section" id="events">
+        <h2 class="pixel-font" data-fr="8. Evenements en Direct et Admin" data-en="8. Live Events and Admin">8. Evenements en Direct et Admin</h2>
+        <p data-fr="Grâce à l'intégration de la technologie Ably Realtime, les administrateurs du jeu peuvent diffuser des événements en direct auprès de tous les joueurs connectés :"
+           data-en="Powered by Ably Realtime technology, game administrators can broadcast live events to all connected players:">
+           Grâce à l'intégration de la technologie Ably Realtime, les administrateurs du jeu peuvent diffuser des événements en direct auprès de tous les joueurs connectés :
+        </p>
+        <ul>
+            <li data-fr="Global Luck Boosts : Activation globale de multiplicateurs de chance." data-en="Global Luck Boosts: Triggers global luck multipliers.">Global Luck Boosts : Activation globale de multiplicateurs de chance.</li>
+            <li data-fr="Green Time : Chance accrue pour les pommes vertes pendant une duree limitee." data-en="Green Time: Temporary increased green apple luck event.">Green Time : Chance accrue pour les pommes vertes pendant une duree limitee.</li>
+            <li data-fr="Double Points : Multiplie par 2 les points et le gain de pommes récoltées." data-en="Double Points: Doubles points and apple yields.">Double Points : Multiplie par 2 les points et le gain de pommes récoltées.</li>
+            <li data-fr="Admin Spawns : Faire apparaître des pommes spécifiques directement dans votre serveur." data-en="Admin Spawns: Direct spawns of specific rare apples into your server.">Admin Spawns : Faire apparaître des pommes spécifiques directement dans votre serveur.</li>
+        </ul>
+    </div>
+
+</div>
+
+<script>
+    let currentLang = "fr";
+
+    function toggleLanguage() {
+        currentLang = currentLang === "fr" ? "en" : "fr";
+        document.getElementById("lang-btn-label").innerText = currentLang === "fr" ? "English" : "Français";
+
+        document.querySelectorAll("[data-fr]").forEach(el => {
+            const text = el.getAttribute(`data-${currentLang}`);
+            if (text) {
+                el.innerHTML = text;
+            }
+        });
+    }
+</script>
+</body>
+</html>

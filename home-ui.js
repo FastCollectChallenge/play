@@ -15,8 +15,8 @@
     discord: "https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/discord-round-black-icon.png"
   };
   const DISCORD_URL = "https://discord.gg/52UY26TBQF";
-  const HELP_URL = "https://how2play.fastcollectchallenge.com";
-  const PRIVACY_URL = "https://privacy-policy.fastcollectchallenge.com";
+  const HELP_URL = "/how/to/play";
+  const PRIVACY_URL = "/privacy/policy";
   const src = f => (/^https?:/.test(f) ? f : encodeURI(f));
 
   const INVERT_ICONS = true;   // true = couleurs des icônes inversées ; false = telles quelles

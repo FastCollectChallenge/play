@@ -331,6 +331,7 @@ if (window.makeLangSwitch) { const w = makeLangSwitch(); w.style.cssText = "top:
 const err = e => $("au-err").textContent = (e && (e.code || e.message)) || String(e);
 window.addEventListener("unhandledrejection", e => { console.error(e.reason); err(e.reason); });
 window.addEventListener("error", e => err(e.message));
+const AUTH_PATH = { login: "/login", signup: "/signin" };
 let mode = "login";
 function setAuthMode(m) {
   mode = m; const su = m === "signup";
@@ -338,6 +339,7 @@ function setAuthMode(m) {
   $("au-social").style.display = su ? "none" : "flex";
   $("au-q").textContent = su ? "Already have an account?" : "No account?";
   $("au-alt").textContent = su ? "Log-in here" : "Sign-up here"; err("");
+  if (location.pathname !== AUTH_PATH[m]) history.replaceState(null, "", AUTH_PATH[m]);
 }
 
 async function pseudoAuth(signup) {
@@ -447,6 +449,10 @@ window.openAccountModal = () => me && openProfilePage({
   submit: async (n, p) => { await api("/me/photo", "PATCH", { photo: p }); myPhoto = p; setAvatar(p); },
   cancel: async () => { await advFlush(); manualLogout = true; await signOut(auth); }
 });
+const ACC_PATH = "/your/account";
+const openAccountBase = window.openAccountModal;
+window.openAccountModal = () => { if (!me) return; openAccountBase(); history.replaceState(null, "", ACC_PATH); };
+new MutationObserver(() => { if (pf.style.display === "none" && location.pathname === ACC_PATH) history.replaceState(null, "", "/"); }).observe(pf, { attributes: true, attributeFilter: ["style"] });
 
 /* ---------- Trade : UI ---------- */
 const trBtn = document.createElement("button");
@@ -746,14 +752,14 @@ onAuthStateChanged(auth, async user => {
   if (!user) {
     window.__fcUser = ""; try { window.setMode(window.__fcMode || "menu"); } catch (e) {}
     if (me) { me = null; try { leaveGame(); } catch (e) {} }
-    ov.style.display = "flex"; return;
+    setAuthMode(location.pathname === "/signin" ? "signup" : "login"); ov.style.display = "flex"; return;
   }
   manualLogout = false;
   let v;
   try { v = await ensureProfile(user); if (!v) return; } catch (e) { err(e); ov.style.display = "flex"; return; }
   if (v.banned_until) { srv.offset = v.now - Date.now(); showBan(v.banned_until, v.now); return; }
   me = user.uid; srv.offset = v.now - Date.now();
-  try { applyRemote(v); ov.style.display = "none"; boot.style.display = "none"; promptOneTap(); } catch (e) { err(e); console.error(e); }
+try { applyRemote(v); ov.style.display = "none"; boot.style.display = "none"; if (location.pathname === "/login" || location.pathname === "/signin") history.replaceState(null, "", "/"); else if (location.pathname === "/your/account") window.openAccountModal(); promptOneTap(); } catch (e) { err(e); console.error(e); }
 });
 
 // interface du jeu (logos, popups sans pause, autosell...) : chargée automatiquement
