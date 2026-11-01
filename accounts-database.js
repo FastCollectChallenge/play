@@ -1,4 +1,4 @@
-// accounts-database.js : connexion (Firebase Auth uniquement) + API Cloudflare (économie, échanges)
+// firebase-trade.js : connexion (Firebase Auth uniquement) + API Cloudflare (économie, échanges)
 // Le serveur est maître de tout : ce fichier n'envoie que des intentions (ramassé, vendre, acheter...) et affiche ce que le serveur renvoie.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, onIdTokenChanged, signOut, signInAnonymously, signInWithEmailAndPassword,
@@ -25,7 +25,7 @@ const toast = m => showAdvancedMsg(T(m), "top", { color: "white" });
 const toastG = m => showAdvancedMsg(T(m), "top", { color: "#2ecc71" });
 const errMsg = e => { const m = String((e && e.message) || e); return /failed to fetch|networkerror|load failed/i.test(m) ? "Network error" : m.charAt(0).toUpperCase() + m.slice(1); };
 // APPLE_FIELDS, APPLE_NAMES, APPLE_ORDER, IMG_FRUITS, NEW_APPLES, SHOP_PRODUCTS... viennent d'index.html (portée globale)
-const BASE_PRICE = { red: 1, green: 3, golden: 7, diamond: 15, candy: 50, lava: 200, galaxy: 500, dark: 1000, moony: 50000, bloodmoon: 6666666, salhini: 100000000 };
+const BASE_PRICE = { red: 1, green: 3, golden: 15, diamond: 50, candy: 100, lava: 300, galaxy: 700, dark: 1000, moony: 25000, bloodmoon: 6666666, salhini: 100000000 };
 const priceOf = t => (NEW_APPLES[t] ? NEW_APPLES[t].price : BASE_PRICE[t]) || 0;
 
 let me = null, username = "", myPhoto = "", pendingName = null, manualLogout = false;
@@ -140,7 +140,7 @@ function applyPack(p) {
   if (p.seq !== adv.seq) {
     const prev = adv.seq;
     adv.seq = p.seq; adv.start = p.packStart; adv.lead = p.lead || 0; adv.spawns = p.spawns.slice(); adv.adm = new Set(p.adm || []);
-    adv.bits = Array.from({ length: len }, (_, i) => claimed[i] === "1");
+    adv.bits = Array.from({ length: len }, (_, i) => claimed[i] != "0");
     adv.handled = new Array(len).fill(false);
     // les pommes encore à l'écran deviennent les pommes reportées du nouveau paquet
     const old = apples.filter(a => a.advSeq === prev && a.idx != null).sort((x, y) => x.idx - y.idx);
@@ -150,7 +150,7 @@ function applyPack(p) {
     });
   } else { // même paquet : les apparitions à venir ont pu changer (potion de chance)
     adv.spawns = p.spawns.slice(); adv.adm = new Set(p.adm || []);
-    for (let i = 0; i < len; i++) if (claimed[i] === "1") adv.bits[i] = true;
+    for (let i = 0; i < len; i++) if (claimed[i] !== "0") adv.bits[i] = true;
   }
 }
 function showLuck(l) {
@@ -269,7 +269,7 @@ window.advStart = async function () {
   adv.on = true; adv.seq = -1; adv.spawns = []; adv.bits = []; adv.handled = []; adv.unsent = []; adv.fails = 0; adv.luckVer = -1; adv.adm = new Set();
   const my = ++adv.run;
   for (;;) {
-    try { await advCall("/sync", {}, false); break; }
+    try { await advCall("/sync", { join: true }, false); break; }
     catch (e) {
       if (!adv.on || my !== adv.run) return;
       if (!adv.warned) { adv.warned = true; toast("Server unavailable, retrying..."); }
@@ -291,7 +291,7 @@ function beacon() { // fermeture de l'onglet : le serveur accepte la collecte pa
 }
 document.addEventListener("visibilitychange", () => { if (document.hidden) beacon(); });
 window.addEventListener("pagehide", beacon);
-
+document.addEventListener("visibilitychange", () => { if (!document.hidden) pollEvents(); });
 /* ---------- actions d'économie (le serveur décide, l'écran suit) ---------- */
 window.saveAllAccounts = function () { updateAdventureHUD(); };
 const _leave = window.leaveGame;

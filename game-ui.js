@@ -3,7 +3,7 @@
   const $ = id => document.getElementById(id);
   const TITLE_LOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/icons/Fast%20Collect%20Challenge%20NBG%20logo.png";
   const LOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/icons/Fast%20Collect%20Challenge%20NBG%20logo.png";
-  const PRICE = { red: 1, green: 3, golden: 7, diamond: 15, candy: 50, lava: 200, galaxy: 500, dark: 1000, moony: 50000, salhini: 100000000, bloodmoon: 6666666 };
+const PRICE = { red: 1, green: 3, golden: 15, diamond: 50, candy: 100, lava: 300, galaxy: 700, dark: 1000, moony: 10000, salhini: 100000000, bloodmoon: 6666666 };
   if (typeof NEW_APPLES !== "undefined") Object.keys(NEW_APPLES).forEach(k => { PRICE[k] = NEW_APPLES[k].price; });
   const css = document.createElement("style");
   css.textContent = `.nun,.nun *{font-family:'Inter', sans-serif!important;font-weight:700!important}
