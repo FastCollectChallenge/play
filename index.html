@@ -662,11 +662,16 @@ body {
         function newAppleMsg(id) { const n = NEW_APPLES[id]; showAdvancedMsg(n.msg, 'bottom', n.rainbow ? {isRainbow:true} : {color:n.color}); }
 
         const IMG_POTIONS = {
-            x2: "https://static.wikia.nocookie.net/minecraft_gamepedia/images/7/72/Potion_of_Luck_JE3.png/revision/latest?cb=20230303160252",
-            x4: "https://static.wikia.nocookie.net/minecraft_gamepedia/images/f/f0/Potion_of_Strength_JE3.png/revision/latest?cb=20230303163006",
-            x6: "https://static.wikia.nocookie.net/minecraft_gamepedia/images/8/8b/Potion_of_the_Turtle_Master_JE3.png/revision/latest?cb=20230303170448",
-            x8: "https://media.forgecdn.net/avatars/thumbnails/506/717/256/256/637825834617503195.png",
-            x10: "https://static.wikia.nocookie.net/minecraft_gamepedia/images/f/f8/Potion_of_Decay_BE2.png/revision/latest?cb=20191027040618"
+            x2: "potions/x2.png",
+            x4: "potions/x4.png",
+            x6: "potions/x6.png",
+            x8: "potions/x8.png",
+            x10: "potions/x10.png",
+            x12: "potions/x12.png",
+            x15: "potions/x15.png",
+            x20: "potions/x20.png",
+            x25: "potions/x25.png",
+            x30: "potions/x30.png",
         };
 
         const IMAGES_CACHE = {};
@@ -692,7 +697,7 @@ body {
             { id: "pot_x8_60", type: "x8", multiplier: 8, duration: 60, price: 6500 },
             { id: "pot_x10_15", type: "x10", multiplier: 10, duration: 15, price: 3000 },
             { id: "pot_x10_30", type: "x10", multiplier: 10, duration: 30, price: 6000 },
-            { id: "pot_x10_60", type: "x10", multiplier: 10, duration: 60, price: 10000 }
+            { id: "pot_x10_60", type: "x10", multiplier: 10, duration: 60, price: 10000 },
             { id: "pot_x12_30", type: "x12", multiplier: 12, duration: 30, price: 7500 },
             { id: "pot_x12_60", type: "x12", multiplier: 12, duration: 60, price: 15000 },
             { id: "pot_x15_20", type: "x15", multiplier: 15, duration: 20, price: 6500 },
@@ -705,7 +710,7 @@ body {
             { id: "pot_x25_20", type: "x25", multiplier: 25, duration: 20, price: 20000 },
             { id: "pot_x25_40", type: "x25", multiplier: 25, duration: 40, price: 35000 },
             { id: "pot_x25_60", type: "x25", multiplier: 25, duration: 60, price: 50000 },
-            { id: "pot_x30_10", type: "x30", multiplier: 30, duration: 10, price: 30000 }
+            { id: "pot_x30_10", type: "x30", multiplier: 30, duration: 10, price: 30000 },
             { id: "pot_x30_20", type: "x30", multiplier: 30, duration: 20, price: 60000 },
             { id: "pot_x30_40", type: "x30", multiplier: 30, duration: 40, price: 100000 },
             { id: "pot_x30_60", type: "x30", multiplier: 30, duration: 60, price: 150000 }
