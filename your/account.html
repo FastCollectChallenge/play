@@ -50,9 +50,9 @@
         .inv-item-name { font-size:8px; line-height:1.5; overflow-wrap:anywhere; }
         .inv-item-rarity { font-size:6px; font-weight:900; } 
         .rarity-common { color:#145A32; } .rarity-rare { color:#3498DB; } .rarity-epic { color:#B45BDE; }
-        .rarity-godly { background:linear-gradient(90deg,#ff4242,#ffb52e,#fff15a,#47e66b,#48a9ff,#b75cff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .rarity-godly { background:linear-gradient(90deg,#ff4242,#ffb52e,#fff15a,#47e66b,#48a9ff,#b75cff); background-clip:text; -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
         .rarity-secret { color:#000; -webkit-text-fill-color:#000; background:none; text-shadow:1px 0 #fff,-1px 0 #fff,0 1px #fff,0 -1px #fff,1px 1px #fff,-1px -1px #fff,1px -1px #fff,-1px 1px #fff; }
-        .rarity-admin { background:linear-gradient(90deg,#ff2626,#ffd21f); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .rarity-admin { background:linear-gradient(90deg,#ff2626,#ffd21f); background-clip:text; -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 
         .inv-item-card { background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255,255,255,0.15); border-radius: 25px; height: 90px; display: flex; align-items: center; justify-content: space-between; padding: 0 25px; position: relative; overflow: hidden; transition: background 0.2s, border-color 0.2s; cursor: pointer; }
         .inv-item-card:hover { background: rgba(255, 255, 255, 0.18); border-color: rgba(255,255,255,0.4); }
@@ -97,8 +97,8 @@
         #msg-container-bottom { position: fixed; bottom: 150px; left: 0; width: 100%; display: flex; flex-direction: column-reverse; align-items: center; z-index: 10000; pointer-events: none; }
         .admin-msg { font-family: 'Google Sans', sans-serif !important; font-size: 14px; font-weight: 700; text-align: center; text-shadow: 2px 2px 10px rgba(0,0,0,0.9); margin: 5px 0; width: 100%; }
         .txt-violet { color: #A020F0; }
-        .rainbow-text { background: linear-gradient(to right, #ff9999, #ffcc99, #ffff99, #99ff99, #99ccff, #cc99ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block; filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.3)); }
-        .galaxy-text { background: linear-gradient(to right, #ffb3ff, #b3f0ff, #e6b3ff, #ffffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block; filter: drop-shadow(0px 0px 5px rgba(179,240,255,0.6)); }
+        .rainbow-text { background: linear-gradient(to right, #ff9999, #ffcc99, #ffff99, #99ff99, #99ccff, #cc99ff); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block; filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.3)); }
+        .galaxy-text { background: linear-gradient(to right, #ffb3ff, #b3f0ff, #e6b3ff, #ffffff); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block; filter: drop-shadow(0px 0px 5px rgba(179,240,255,0.6)); }
 
         .gradient-text { -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-shadow: none; display: inline-block; filter: drop-shadow(0px 0px 3px rgba(255,255,255,0.55)); }
 
@@ -663,11 +663,16 @@ body {
         function newAppleMsg(id) { const n = NEW_APPLES[id]; showAdvancedMsg(n.msg, 'bottom', n.rainbow ? {isRainbow:true} : {color:n.color}); }
 
         const IMG_POTIONS = {
-            x2: "https://static.wikia.nocookie.net/minecraft_gamepedia/images/7/72/Potion_of_Luck_JE3.png/revision/latest?cb=20230303160252",
-            x4: "https://static.wikia.nocookie.net/minecraft_gamepedia/images/f/f0/Potion_of_Strength_JE3.png/revision/latest?cb=20230303163006",
-            x6: "https://static.wikia.nocookie.net/minecraft_gamepedia/images/8/8b/Potion_of_the_Turtle_Master_JE3.png/revision/latest?cb=20230303170448",
-            x8: "https://media.forgecdn.net/avatars/thumbnails/506/717/256/256/637825834617503195.png",
-            x10: "https://static.wikia.nocookie.net/minecraft_gamepedia/images/f/f8/Potion_of_Decay_BE2.png/revision/latest?cb=20191027040618"
+            x2: "potions/x2.png",
+            x4: "potions/x4.png",
+            x6: "potions/x6.png",
+            x8: "potions/x8.png",
+            x10: "potions/x10.png",
+            x12: "potions/x12.png",
+            x15: "potions/x15.png",
+            x20: "potions/x20.png",
+            x25: "potions/x25.png",
+            x30: "potions/x30.png",
         };
 
         const IMAGES_CACHE = {};
@@ -682,18 +687,34 @@ body {
             35: "https://static.wikia.nocookie.net/stealabr/images/9/96/35x_Luck.png/revision/latest/scale-to-width/360?cb=20260719014843" };
 
         const SHOP_PRODUCTS = [
-            { id: "pot_x2_30", type: "x2", multiplier: 2, duration: 30, price: 1000 },
-            { id: "pot_x2_60", type: "x2", multiplier: 2, duration: 60, price: 1750 },
-            { id: "pot_x4_30", type: "x4", multiplier: 4, duration: 30, price: 2000 },
-            { id: "pot_x4_60", type: "x4", multiplier: 4, duration: 60, price: 3500 },
-            { id: "pot_x6_25", type: "x6", multiplier: 6, duration: 25, price: 3250 },
-            { id: "pot_x6_45", type: "x6", multiplier: 6, duration: 45, price: 7000 },
-            { id: "pot_x8_20", type: "x8", multiplier: 8, duration: 20, price: 4000 },
-            { id: "pot_x8_40", type: "x8", multiplier: 8, duration: 40, price: 7500 },
-            { id: "pot_x8_60", type: "x8", multiplier: 8, duration: 60, price: 10000 },
-            { id: "pot_x10_15", type: "x10", multiplier: 10, duration: 15, price: 4500 },
-            { id: "pot_x10_30", type: "x10", multiplier: 10, duration: 30, price: 7500 },
-            { id: "pot_x10_60", type: "x10", multiplier: 10, duration: 60, price: 15000 }
+            { id: "pot_x2_30", type: "x2", multiplier: 2, duration: 30, price: 700 },
+            { id: "pot_x2_60", type: "x2", multiplier: 2, duration: 60, price: 1500 },
+            { id: "pot_x4_30", type: "x4", multiplier: 4, duration: 30, price: 1400 },
+            { id: "pot_x4_60", type: "x4", multiplier: 4, duration: 60, price: 2500 },
+            { id: "pot_x6_25", type: "x6", multiplier: 6, duration: 25, price: 2000 },
+            { id: "pot_x6_45", type: "x6", multiplier: 6, duration: 45, price: 5000 },
+            { id: "pot_x8_20", type: "x8", multiplier: 8, duration: 20, price: 2750 },
+            { id: "pot_x8_40", type: "x8", multiplier: 8, duration: 40, price: 4500 },
+            { id: "pot_x8_60", type: "x8", multiplier: 8, duration: 60, price: 6500 },
+            { id: "pot_x10_15", type: "x10", multiplier: 10, duration: 15, price: 3000 },
+            { id: "pot_x10_30", type: "x10", multiplier: 10, duration: 30, price: 6000 },
+            { id: "pot_x10_60", type: "x10", multiplier: 10, duration: 60, price: 10000 },
+            { id: "pot_x12_30", type: "x12", multiplier: 12, duration: 30, price: 7500 },
+            { id: "pot_x12_60", type: "x12", multiplier: 12, duration: 60, price: 15000 },
+            { id: "pot_x15_20", type: "x15", multiplier: 15, duration: 20, price: 6500 },
+            { id: "pot_x15_40", type: "x15", multiplier: 15, duration: 40, price: 12000 },
+            { id: "pot_x15_60", type: "x15", multiplier: 15, duration: 60, price: 17500 },
+            { id: "pot_x20_15", type: "x20", multiplier: 20, duration: 15, price: 8000 },
+            { id: "pot_x20_30", type: "x20", multiplier: 20, duration: 30, price: 15000 },
+            { id: "pot_x20_60", type: "x20", multiplier: 20, duration: 60, price: 25000 },
+            { id: "pot_x25_10", type: "x25", multiplier: 25, duration: 10, price: 10000 },
+            { id: "pot_x25_20", type: "x25", multiplier: 25, duration: 20, price: 20000 },
+            { id: "pot_x25_40", type: "x25", multiplier: 25, duration: 40, price: 35000 },
+            { id: "pot_x25_60", type: "x25", multiplier: 25, duration: 60, price: 50000 },
+            { id: "pot_x30_10", type: "x30", multiplier: 30, duration: 10, price: 30000 },
+            { id: "pot_x30_20", type: "x30", multiplier: 30, duration: 20, price: 60000 },
+            { id: "pot_x30_40", type: "x30", multiplier: 30, duration: 40, price: 100000 },
+            { id: "pot_x30_60", type: "x30", multiplier: 30, duration: 60, price: 150000 }
         ];
 
         let accounts = { "Default": { money: 0, redApples: 0, greenApples: 0, goldenApples: 0, diamondApples: 0, candyApples: 0, lavaApples: 0, galaxyApples: 0, darkApples: 0, salhiniApples: 0, bloodmoonApples: 0, moonyApples: 0, potions: {} } };
@@ -1254,7 +1275,7 @@ body {
                     let bloodmoonChance = 0.00000666 * luckMultiplier;
                     let darkChance = 0.001 * luckMultiplier;
                     let salhiniChance = 0;
-                    let moonyChance = 0.0001 * luckMultiplier;
+                    let moonyChance = 0.00025 * luckMultiplier;
                     let galaxyChance = 0.003 * luckMultiplier;
                     let lavaChance = 0.005 * luckMultiplier;
                     let candyChance = 0.01 * luckMultiplier;
