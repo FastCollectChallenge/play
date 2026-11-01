@@ -1,4 +1,4 @@
-// firebase-trade.js : connexion (Firebase Auth uniquement) + API Cloudflare (économie, échanges)
+// accounts-database.js : connexion (Firebase Auth uniquement) + API Cloudflare (économie, échanges)
 // Le serveur est maître de tout : ce fichier n'envoie que des intentions (ramassé, vendre, acheter...) et affiche ce que le serveur renvoie.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, onIdTokenChanged, signOut, signInAnonymously, signInWithEmailAndPassword,
@@ -16,7 +16,7 @@ const app = initializeApp({
 const auth = getAuth(app);
 const $ = id => document.getElementById(id);
 const FAKE = "@fastcollect.app";
-const LOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/icons/Fast%20Collect%20Challenge%20NBG%20logo.png";
+const LOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge%20Ingame%20logo.png";
 const clean = s => (s || "").trim().toLowerCase();
 const okName = s => /^[a-z0-9_]{3,16}$/.test(s);
 const T = s => (window.T ? window.T(s) : s);
@@ -58,7 +58,7 @@ function credit(a, t) { // même règle que le serveur (affichage immédiat, le 
 }
 
 /* ---------- Adventure : apparitions fournies par le serveur ---------- */
-const adv = { on: false, run: 0, seq: -1, start: 0, lead: 0, spawns: [], bits: [], handled: [], unsent: [], rolling: false, syncing: false, timer: null, lastTry: 0, fails: 0, warned: false };
+const adv = { on: false, run: 0, seq: -1, start: 0, lead: 0, spawns: [], bits: [], handled: [], unsent: [], rolling: false, syncing: false, timer: null, lastTry: 0, fails: 0, warned: false, adm: new Set(), luckVer: -1, evTimer: null };
 const entryTime = j => adv.start + Math.max(0, j - adv.lead) * 1000;
 const sizeOf = t => (t === "red" || t === "green") ? 25 : t === "bloodmoon" ? 36 : 32;
 const maskStr = () => adv.bits.map(b => b ? "1" : "0").join("");
@@ -99,10 +99,23 @@ function announce(t) {
   else if (t === "moony") showAdvancedMsg("A Moony Apple spawned in your server!", "bottom", { stops: ["#BFC1C2", "#F8F8F8", "#9EA0A2", "#ECECEC"] });
   else if (NEW_APPLES[t]) newAppleMsg(t);
 }
+function announceAdmin(t) { // pomme envoyée par l'admin
+  const fr = "<span style='color: #ff3838; font-weight: 900;'>FelixRouge</span>";
+  if (t === "lava") showAdvancedMsg(fr + " spawned a Lava Apple in your server!", "bottom", { color: "#FF4D00" });
+  else if (t === "galaxy") showAdvancedMsg(fr + " spawned a Galaxy Apple in your server!", "bottom", { isGalaxy: true });
+  else if (t === "dark") showAdvancedMsg(fr + " spawned a Dark Apple in your server!", "bottom", { color: "black" });
+  else if (t === "bloodmoon" || t === "salhini" || t === "moony" || NEW_APPLES[t]) announce(t);
+  else showAdvancedMsg(fr + " spawned a " + (APPLE_NAMES[t] || t) + " in your server!", "bottom", { color: "white" });
+}
+function announceLuck(l) {
+  const left = Math.max(0, Math.round((l.until - srvNow()) / 1000));
+  if (typeof LUCK_IMAGES !== "undefined" && LUCK_IMAGES[l.mult]) showAdvancedMsg(`FelixRouge activated ${l.mult}x luck!`, "bottom", getLuckStyle(l.mult));
+  else showAdvancedMsg("<span style='color: #ff3838; font-weight: 900;'>FelixRouge</span> activated " + l.mult + "x luck" + (left ? " for " + fmtTime(left) : "") + "!", "bottom", { color: "white" });
+}
 function spawnEntry(j, live) {
   const type = adv.spawns[j], size = sizeOf(type), m = size === 25 ? 60 : 35;
   apples.push({ x: Math.random() * (canvas.width - m), y: Math.random() * (canvas.height - m), size, type, idx: j, advSeq: adv.seq });
-  recordSpawn(type); if (live) announce(type);
+  recordSpawn(type); if (live) (adv.adm.has(j) ? announceAdmin(type) : announce(type));
 }
 function advTick() {
   if (!adv.on || !gameActive || currentGameMode !== "adventure") return;
@@ -126,7 +139,7 @@ function applyPack(p) {
   const len = p.spawns.length, claimed = String(p.claimed || "").padEnd(len, "0");
   if (p.seq !== adv.seq) {
     const prev = adv.seq;
-    adv.seq = p.seq; adv.start = p.packStart; adv.lead = p.lead || 0; adv.spawns = p.spawns.slice();
+    adv.seq = p.seq; adv.start = p.packStart; adv.lead = p.lead || 0; adv.spawns = p.spawns.slice(); adv.adm = new Set(p.adm || []);
     adv.bits = Array.from({ length: len }, (_, i) => claimed[i] === "1");
     adv.handled = new Array(len).fill(false);
     // les pommes encore à l'écran deviennent les pommes reportées du nouveau paquet
@@ -136,13 +149,16 @@ function applyPack(p) {
       else { const i = apples.indexOf(a); if (i >= 0) apples.splice(i, 1); }
     });
   } else { // même paquet : les apparitions à venir ont pu changer (potion de chance)
-    adv.spawns = p.spawns.slice();
+    adv.spawns = p.spawns.slice(); adv.adm = new Set(p.adm || []);
     for (let i = 0; i < len; i++) if (claimed[i] === "1") adv.bits[i] = true;
   }
 }
 function showLuck(l) {
-  if (!l || !(l.mult > 1)) return;
-  const rem = Math.round((l.until - srvNow()) / 1000); if (rem <= 0) return;
+  const rem = l ? Math.round((l.until - srvNow()) / 1000) : 0;
+  if (!l || !(l.mult > 1) || rem <= 0) { // plus de chance : on retire le minuteur
+    if (activeTimers.luck) { clearInterval(activeTimers.luck.interval); const c = $("event-luck"); if (c) c.remove(); delete activeTimers.luck; }
+    return;
+  }
   if (activeTimers.luck) { if (Math.abs(activeTimers.luck.remaining - rem) <= 2) return; clearInterval(activeTimers.luck.interval); const c = $("event-luck"); if (c) c.remove(); delete activeTimers.luck; }
   const prod = SHOP_PRODUCTS.find(p => p.multiplier === l.mult);
   startHudTimer("luck", LUCK_IMAGES[l.mult] || (prod && IMG_POTIONS[prod.type]) || "", rem, "🍀", () => {});
@@ -154,6 +170,7 @@ async function advCallRaw(path, extra, next) {
     const p = await api(path, "POST", { ...extra, seq: adv.seq, mask: adv.seq < 0 ? null : maskStr(), next: !!next });
     adv.fails = 0; adv.warned = false;
     applyPack(p); showLuck(p.luck); if (p.trades) handleTrades(p.trades);
+    if (p.luck && p.luck.ver !== adv.luckVer) { const first = adv.luckVer === -1; adv.luckVer = p.luck.ver; if (!first && p.luck.mult > 1) announceLuck(p.luck); }
     return p;
   } catch (e) { adv.unsent = sent.concat(adv.unsent); adv.fails++; throw e; }
   finally { adv.rolling = false; }
@@ -176,7 +193,7 @@ const warnOv = document.createElement("div"); warnOv.id = "warn-ov";
 warnOv.innerHTML = `<div id="warn-box"></div>`;
 document.body.appendChild(warnOv);
 warnOv.addEventListener("mousedown", e => { if (e.target === warnOv && !banUntil) warnOv.style.display = "none"; }); // clic en dehors = ferme (impossible pendant un ban)
-const WLOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/icons/Fast%20Collect%20Challenge%20NBG%20logo.png";
+const WLOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge%20NBG%20logo.png";
 const WNAME = `<span class="wn"><img src="${WLOGO}" alt="">Fast Collect Challenge</span>`;
 let lastWarn = 0;
 let banUntil = 0, banTimer = null, srvOff = 0;
@@ -238,9 +255,18 @@ window.advCollect = a => {
   snap();
   updateAdventureHUD();
 };
+const EV_POLL_MS = 20000; // toutes les 20 s : y a-t-il une chance globale ou une pomme de l'admin ? (lecture seule, très léger)
+async function pollEvents() {
+  if (!adv.on || adv.syncing || adv.rolling || document.hidden || banUntil) return;
+  try {
+    const e = await api("/events");
+    if (!adv.on || (e.ver === adv.luckVer && !e.pending)) return;
+    await advCall("/sync", { refresh: true }, false);
+  } catch (err) { /* réessaie au prochain tour */ }
+}
 window.advStart = async function () {
   advStop(false);
-  adv.on = true; adv.seq = -1; adv.spawns = []; adv.bits = []; adv.handled = []; adv.unsent = []; adv.fails = 0;
+  adv.on = true; adv.seq = -1; adv.spawns = []; adv.bits = []; adv.handled = []; adv.unsent = []; adv.fails = 0; adv.luckVer = -1; adv.adm = new Set();
   const my = ++adv.run;
   for (;;) {
     try { await advCall("/sync", {}, false); break; }
@@ -252,10 +278,11 @@ window.advStart = async function () {
   }
   if (my !== adv.run) return;
   clearInterval(adv.timer); adv.timer = setInterval(advTick, 250); advTick();
+  clearInterval(adv.evTimer); adv.evTimer = setInterval(pollEvents, EV_POLL_MS);
 };
 function advStop(sendFinal) {
   const was = adv.on && adv.seq >= 0 && adv.unsent.length;
-  adv.on = false; adv.run++; clearInterval(adv.timer); adv.timer = null;
+  adv.on = false; adv.run++; clearInterval(adv.timer); adv.timer = null; clearInterval(adv.evTimer); adv.evTimer = null;
   if (sendFinal && was) api("/sync", "POST", { seq: adv.seq, mask: maskStr() }, { keepalive: true }).catch(() => {});
 }
 function beacon() { // fermeture de l'onglet : le serveur accepte la collecte partielle
@@ -319,7 +346,7 @@ ov.innerHTML = `<div style="width:48%;padding:0 3%;box-sizing:border-box;display
 <div class="rb" style="width:52%;display:flex;justify-content:center"><div style="width:360px;display:flex;flex-direction:column;gap:14px">
 <input id="au-name" style="${inp}" placeholder="Username or email"><input id="au-pw" type="password" style="${inp}" placeholder="Password (6+ chars)">
 <button id="au-main" style="padding:13px;border:0;border-radius:50px;background:#f1c40f;color:#000;font-size:15px;font-weight:700;cursor:pointer">Log in</button>
-<div id="au-social" style="display:flex;flex-direction:column;gap:14px">${sBtn("au-google", "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/3840px-Google_%22G%22_logo.svg.png?utm_source=fr.wikipedia.org&utm_campaign=index&utm_content=thumbnail", "Log-in with Google")}${sBtn("au-github", "https://cdn-icons-png.flaticon.com/512/25/25231.png", "Log-in with Github")}<a id="au-guest" href="#" style="color:#aaa;text-align:center;font-size:13px">Play as guest</a></div>
+<div id="au-social" style="display:flex;flex-direction:column;gap:14px">${sBtn("au-google", "https://png.pngtree.com/png-vector/20230817/ourmid/pngtree-google-logo-vector-png-image_9183290.png", "Log-in with Google")}${sBtn("au-github", "https://cdn-icons-png.flaticon.com/512/25/25231.png", "Log-in with Github")}<a id="au-guest" href="#" style="color:#aaa;text-align:center;font-size:13px">Play as guest</a></div>
 <div id="au-err" style="color:#ff6b6b;font-size:13px;min-height:16px;text-align:center"></div></div></div>`;
 const boot = document.createElement("div"); // écran de chargement pendant la connexion automatique
 boot.id = "boot-screen";
@@ -331,7 +358,6 @@ if (window.makeLangSwitch) { const w = makeLangSwitch(); w.style.cssText = "top:
 const err = e => $("au-err").textContent = (e && (e.code || e.message)) || String(e);
 window.addEventListener("unhandledrejection", e => { console.error(e.reason); err(e.reason); });
 window.addEventListener("error", e => err(e.message));
-const AUTH_PATH = { login: "/login", signup: "/signin" };
 let mode = "login";
 function setAuthMode(m) {
   mode = m; const su = m === "signup";
@@ -339,7 +365,6 @@ function setAuthMode(m) {
   $("au-social").style.display = su ? "none" : "flex";
   $("au-q").textContent = su ? "Already have an account?" : "No account?";
   $("au-alt").textContent = su ? "Log-in here" : "Sign-up here"; err("");
-  if (location.pathname !== AUTH_PATH[m]) history.replaceState(null, "", AUTH_PATH[m]);
 }
 
 async function pseudoAuth(signup) {
@@ -372,14 +397,14 @@ $("au-github").onclick = () => social(GithubAuthProvider);
 $("au-guest").onclick = e => { e.preventDefault(); signInAnonymously(auth).catch(err); };
 
 /* ---------- profil ---------- */
-const AV0 = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/icons/Favicon.png";
+const AV0 = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge.png";
 const pf = document.createElement("div"); pf.id = "profile-page";
 pf.style.cssText = "position:fixed;inset:0;z-index:9100;background:#000;border:10px solid #f1c40f;box-sizing:border-box;display:none;align-items:center;color:#f1c40f";
 pf.innerHTML = `<div style="width:48%;padding:0 3%;box-sizing:border-box;display:flex;flex-direction:row;align-items:center;gap:24px"><img src="${LOGO}" style="width:120px;height:120px;object-fit:contain;flex:none"><div style="font-size:40px;line-height:1.5;text-transform:uppercase;text-shadow:4px 4px 0 #333">Fast Collect Challenge</div></div>
 <div class="rb" style="width:52%;display:flex;justify-content:center"><div style="width:380px;display:flex;flex-direction:column;gap:14px">
 <div id="pf-title" style="font-size:22px;font-weight:700;color:#fff;text-align:center;line-height:1.3"></div>
 <div style="display:flex;justify-content:center"><img id="pf-prev" style="width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid #f1c40f;background:#222"></div>
-<input id="pf-name" style="${inp}" placeholder="Username (3-16: a-z, 0-9, _)"><div style="display:flex;gap:10px;align-items:stretch"><input id="pf-photo" style="${inp};min-width:0;flex:1" placeholder="Profile picture URL (https://...)"><button id="pf-upload" type="button" style="flex:none;padding:0 22px;border:0;border-radius:50px;background:#f1c40f;color:#000;font-size:15px;font-weight:700;cursor:pointer">Upload</button></div>
+<input id="pf-name" style="${inp}" placeholder="Username (3-16: a-z, 0-9, _)"><input id="pf-photo" style="${inp}" placeholder="Profile picture URL (https://...)">
 <div id="pf-lang" style="display:none;align-items:center;justify-content:center;gap:12px;color:#ddd;font-size:14px"><span>Language</span></div>
 <button id="pf-ok" style="padding:13px;border:0;border-radius:50px;background:#f1c40f;color:#000;font-size:15px;font-weight:700;cursor:pointer"></button>
 <a id="pf-close" href="#" style="color:#ddd;text-align:center;font-size:13px">Close</a><a id="pf-out" href="#" style="color:#aaa;text-align:center;font-size:13px">Log out</a>
@@ -393,7 +418,6 @@ function showPrev() {
   im.src = /^https:\/\/\S+$/i.test(u) ? u : AV0;
 }
 $("pf-photo").oninput = showPrev;
-$("pf-upload").onclick = () => { location.href = "https://image-hoster.fastcollectchallenge.com"; };
 function openProfilePage({ edit, noName, name, photo, submit, cancel }) {
   let hideName = !!noName;
   $("pf-title").textContent = edit ? "Edit your profile picture" : noName ? "Choose your profile picture" : "Choose your username and profile picture";
@@ -450,15 +474,11 @@ window.openAccountModal = () => me && openProfilePage({
   submit: async (n, p) => { await api("/me/photo", "PATCH", { photo: p }); myPhoto = p; setAvatar(p); },
   cancel: async () => { await advFlush(); manualLogout = true; await signOut(auth); }
 });
-const ACC_PATH = "/your/account";
-const openAccountBase = window.openAccountModal;
-window.openAccountModal = () => { if (!me) return; openAccountBase(); history.replaceState(null, "", ACC_PATH); };
-new MutationObserver(() => { if (pf.style.display === "none" && location.pathname === ACC_PATH) history.replaceState(null, "", "/"); }).observe(pf, { attributes: true, attributeFilter: ["style"] });
 
 /* ---------- Trade : UI ---------- */
 const trBtn = document.createElement("button");
 trBtn.id = "trade-btn"; trBtn.className = "side-btn"; trBtn.style.background = "rgb(255, 255, 255)";
-trBtn.innerHTML = `<img src="icons/Trading Dark Mode.png" alt="Trade" onerror="this.style.display='none';this.parentNode.classList.add('no-img')"><span class="side-btn-label">Trade</span><span id="tr-badge" style="display:none;position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;line-height:20px;border-radius:10px;background:#e84118;color:#fff;font-size:9px;text-align:center"></span>`;
+trBtn.innerHTML = `<img src="https://cdn-icons-png.flaticon.com/512/3439/3439283.png" alt="Trade" onerror="this.style.display='none';this.parentNode.classList.add('no-img')"><span class="side-btn-label">Trade</span><span id="tr-badge" style="display:none;position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;line-height:20px;border-radius:10px;background:#e84118;color:#fff;font-size:9px;text-align:center"></span>`;
 $("side-buttons").appendChild(trBtn);
 const trStyle = document.createElement("style");
 trStyle.textContent = `@keyframes trpop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
@@ -753,14 +773,14 @@ onAuthStateChanged(auth, async user => {
   if (!user) {
     window.__fcUser = ""; try { window.setMode(window.__fcMode || "menu"); } catch (e) {}
     if (me) { me = null; try { leaveGame(); } catch (e) {} }
-    setAuthMode(location.pathname === "/signin" ? "signup" : "login"); ov.style.display = "flex"; return;
+    ov.style.display = "flex"; return;
   }
   manualLogout = false;
   let v;
   try { v = await ensureProfile(user); if (!v) return; } catch (e) { err(e); ov.style.display = "flex"; return; }
   if (v.banned_until) { srv.offset = v.now - Date.now(); showBan(v.banned_until, v.now); return; }
   me = user.uid; srv.offset = v.now - Date.now();
-try { applyRemote(v); ov.style.display = "none"; boot.style.display = "none"; if (location.pathname === "/login" || location.pathname === "/signin") history.replaceState(null, "", "/"); else if (location.pathname === "/your/account") window.openAccountModal(); promptOneTap(); } catch (e) { err(e); console.error(e); }
+  try { applyRemote(v); ov.style.display = "none"; boot.style.display = "none"; promptOneTap(); } catch (e) { err(e); console.error(e); }
 });
 
 // interface du jeu (logos, popups sans pause, autosell...) : chargée automatiquement

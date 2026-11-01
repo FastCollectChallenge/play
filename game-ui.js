@@ -114,7 +114,7 @@
   $("auto-btn").onclick = () => { renderAuto(); am.style.display = "flex"; };
   $("auto-close").onclick = closeAuto;
 
-  let lastMoney = null; // la vente automatique est faite par le serveur (voir firebase-trade.js)
+  let lastMoney = null; // la vente automatique est faite par le serveur (voir accounts-database.js)
   window.autosellReset = () => { lastMoney = null; };
 
   /* ---------- +$ au-dessus de l'argent ---------- */
