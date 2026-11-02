@@ -434,14 +434,14 @@ body {
 
     <div id="home-screen">
         <div class="home-disclaimer">
-    <img src="https://raw.githubusercontent.com/FastCollectChallenge/play/main/icons/Fast%20Collect%20Challenge%20NBG%20logo.png" alt="Logo">
+    <img src="icons/Fast%20Collect%20Challenge.png" alt="Logo">
     <span class="home-disclaimer-title">Fast Collect Challenge</span> is in no way affiliated with or endorsed by Google or Google Gemini.
 </div>
         <canvas id="dvdCanvas"></canvas>
         <div class="home-content">
             <div class="home-header">
                 <div class="top-panel" id="top-left-panel">
-                    <img class="tp-joy" src="https://raw.githubusercontent.com/FastCollectChallenge/play/main/icons/Fast%20Collect%20Challenge%20NBG%20logo.png" alt="">
+                    <img class="tp-joy" src="icons/Fast%20Collect%20Challenge.png" alt="">
                     <span class="tp-sep-v"></span>
                     <div class="tp-col">
                         <div class="tp-row" onclick="openAccountModal()"><img class="tp-ico" src="icons/Account%20Dark%20Mode.png" alt=""><span class="tp-txt">Your Account</span></div>
@@ -1131,6 +1131,7 @@ body {
         channel.unsubscribe();
         channel.subscribe((msg) => {
             const d = msg.data; if (!gameActive) return;
+            if (msg.name === 'advRefresh') { if (window.advPoll) window.advPoll(); return; }
             // en Adventure, chance / apparitions / points sont gérés par le serveur : ces événements n'ont plus d'effet ici
             if (currentGameMode === "adventure" && ['luck','customLuck','customSpawn','greentime','doublepoints','spawn','spawnGolden','spawnDiamond','spawnCandy','clearLuck'].includes(msg.name)) return;
             if (msg.name === 'luck') {

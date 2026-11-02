@@ -16,7 +16,7 @@ const app = initializeApp({
 const auth = getAuth(app);
 const $ = id => document.getElementById(id);
 const FAKE = "@fastcollect.app";
-const LOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge%20Ingame%20logo.png";
+const LOGO = "icons/Fast%20Collect%20Challenge.png";
 const clean = s => (s || "").trim().toLowerCase();
 const okName = s => /^[a-z0-9_]{3,16}$/.test(s);
 const T = s => (window.T ? window.T(s) : s);
@@ -193,7 +193,7 @@ const warnOv = document.createElement("div"); warnOv.id = "warn-ov";
 warnOv.innerHTML = `<div id="warn-box"></div>`;
 document.body.appendChild(warnOv);
 warnOv.addEventListener("mousedown", e => { if (e.target === warnOv && !banUntil) warnOv.style.display = "none"; }); // clic en dehors = ferme (impossible pendant un ban)
-const WLOGO = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge%20NBG%20logo.png";
+const WLOGO = "icons/Fast%20Collect%20Challenge.png";
 const WNAME = `<span class="wn"><img src="${WLOGO}" alt="">Fast Collect Challenge</span>`;
 let lastWarn = 0;
 let banUntil = 0, banTimer = null, srvOff = 0;
@@ -264,6 +264,7 @@ async function pollEvents() {
     await advCall("/sync", { refresh: true }, false);
   } catch (err) { /* réessaie au prochain tour */ }
 }
+window.advPoll = pollEvents;
 window.advStart = async function () {
   advStop(false);
   adv.on = true; adv.seq = -1; adv.spawns = []; adv.bits = []; adv.handled = []; adv.unsent = []; adv.fails = 0; adv.luckVer = -1; adv.adm = new Set();
@@ -397,14 +398,14 @@ $("au-github").onclick = () => social(GithubAuthProvider);
 $("au-guest").onclick = e => { e.preventDefault(); signInAnonymously(auth).catch(err); };
 
 /* ---------- profil ---------- */
-const AV0 = "https://raw.githubusercontent.com/FastCollectChallenge/play/main/Fast%20Collect%20Challenge.png";
+const AV0 = "icons/Fast%20Collect%20Challenge.png";
 const pf = document.createElement("div"); pf.id = "profile-page";
 pf.style.cssText = "position:fixed;inset:0;z-index:9100;background:#000;border:10px solid #f1c40f;box-sizing:border-box;display:none;align-items:center;color:#f1c40f";
 pf.innerHTML = `<div style="width:48%;padding:0 3%;box-sizing:border-box;display:flex;flex-direction:row;align-items:center;gap:24px"><img src="${LOGO}" style="width:120px;height:120px;object-fit:contain;flex:none"><div style="font-size:40px;line-height:1.5;text-transform:uppercase;text-shadow:4px 4px 0 #333">Fast Collect Challenge</div></div>
 <div class="rb" style="width:52%;display:flex;justify-content:center"><div style="width:380px;display:flex;flex-direction:column;gap:14px">
 <div id="pf-title" style="font-size:22px;font-weight:700;color:#fff;text-align:center;line-height:1.3"></div>
 <div style="display:flex;justify-content:center"><img id="pf-prev" style="width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid #f1c40f;background:#222"></div>
-<input id="pf-name" style="${inp}" placeholder="Username (3-16: a-z, 0-9, _)"><input id="pf-photo" style="${inp}" placeholder="Profile picture URL (https://...)">
+<input id="pf-name" style="${inp}" placeholder="Username (3-16: a-z, 0-9, _)"><input id="pf-photo" style="${inp}" placeholder="Profile picture URL (https://...)"><a id="pf-upload" href="https://image-hoster.fastcollectchallenge.com" target="_blank" rel="noopener" style="padding:13px;border-radius:50px;color:#fff;font-size:15px;font-weight:700;text-align:center;text-decoration:none;cursor:pointer">Upload</a>
 <div id="pf-lang" style="display:none;align-items:center;justify-content:center;gap:12px;color:#ddd;font-size:14px"><span>Language</span></div>
 <button id="pf-ok" style="padding:13px;border:0;border-radius:50px;background:#f1c40f;color:#000;font-size:15px;font-weight:700;cursor:pointer"></button>
 <a id="pf-close" href="#" style="color:#ddd;text-align:center;font-size:13px">Close</a><a id="pf-out" href="#" style="color:#aaa;text-align:center;font-size:13px">Log out</a>
@@ -785,3 +786,4 @@ onAuthStateChanged(auth, async user => {
 
 // interface du jeu (logos, popups sans pause, autosell...) : chargée automatiquement
 if (!window.__gameUI) { window.__gameUI = true; const g = document.createElement("script"); g.src = "game-ui.js"; document.head.appendChild(g); }
+if (!window.__gambleUI) { window.__gambleUI = true; const g2 = document.createElement("script"); g2.src = "gambling-ui.js"; document.head.appendChild(g2); }
