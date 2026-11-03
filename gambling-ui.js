@@ -6,7 +6,7 @@
     title: ["GAMBLING", "CASINO"], coin: ["Coin flip", "Pile ou face"], slots: ["Slots", "Machine à sous"], wheel: ["Wheel", "Roue"],
     bet: ["Bet", "Mise"], play: ["Play", "Jouer"], spin: ["Spin", "Tourner"], heads: ["Heads", "Face"], tails: ["Tails", "Pile"],
     win: ["You won", "Tu as gagné"], lose: ["You lost", "Tu as perdu"], back: ["Bet refunded", "Mise remboursée"], close: ["Close", "Fermer"],
-    nomoney: ["Not enough money", "Pas assez d'argent"], badbet: ["Invalid bet", "Mise invalide"],
+    nomoney: ["Not enough money", "Pas assez d'argent"], fee: ["Fee (5%)", "Frais (5 %)"], nofee: ["Not enough money for the fee", "Pas assez d'argent pour les frais"], badbet: ["Invalid bet", "Mise invalide"],
     coinInfo: ["Pick a side: x2 or nothing", "Choisis un côté : x2 ou rien"],
     slotsInfo: ["3 identical apples win. A barrier on any reel = lost", "3 pommes identiques gagnent. Une barrière sur un rouleau = perdu"],
     wheelInfo: ["Give something, pick what you want: the chance depends on the values", "Donne quelque chose, choisis ce que tu veux : la chance dépend des valeurs"],
@@ -26,6 +26,7 @@
 
   const SLOT = { red: 1, green: 3, golden: 5, diamond: 7, candy: 10, lava: 25, galaxy: 50, dark: 100 };
   const BY_MULT = Object.fromEntries(Object.entries(SLOT).map(([k, m]) => [m, k]));
+  const FEE = 0.05, fee = v => Math.ceil(v * FEE); // frais de 5 % de la valeur misée, payés en argent (même règle côté serveur)
   const BARRIER = "icons/barrier.png", HEADS = "icons/heads.png", TAILS = "icons/tails.png";
   const wheelApples = () => APPLE_ORDER.filter(k => APPLE_FIELDS[k] && IMG_FRUITS[k] && price(k) > 0);
   const chanceOf = (give, want) => (give > 0 && want > give ? Math.max(1, Math.min(99, Math.round(give / want * 100))) : 0); // même formule côté serveur
@@ -69,7 +70,7 @@
   .g-wheelwrap{position:relative;width:240px;height:240px}
   .g-wheel{width:100%;height:100%;border-radius:50%;border:5px solid #fff;transition:transform 3.4s cubic-bezier(.12,.7,.1,1);box-shadow:0 10px 40px rgba(0,0,0,.5)}
   .g-ptr{position:absolute;left:50%;top:-16px;transform:translateX(-50%);border-left:13px solid transparent;border-right:13px solid transparent;border-top:26px solid #fff;z-index:2}
-  .g-pct{font-size:26px}.g-hint{margin:auto;color:#aab2c5;text-align:center;font-size:14px}`;
+  .g-stake{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%}.g-pct{font-size:26px}.g-hint{margin:auto;color:#aab2c5;text-align:center;font-size:14px}`;
   document.head.appendChild(css);
 
   /* ---------- structure (même en-tête que l'inventaire) ---------- */
@@ -89,15 +90,37 @@
     GAMES.forEach(g => { const b = document.createElement("button"); b.className = "tab-btn" + (g === game ? " active" : ""); b.textContent = t(g); b.onclick = () => { if (!busy) { game = g; render(); } }; $("g-tabs").appendChild(b); });
     money();
   }
-  const betBar = () => `<div class="g-bar"><span>${t("bet")}</span><input id="g-bet" type="number" min="1" step="1" value="${($("g-bet") && $("g-bet").value) || 1}">
-    <button class="g-mini" data-b="min">Min</button><button class="g-mini" data-b="half">½</button><button class="g-mini" data-b="x2">x2</button><button class="g-mini" data-b="max">Max</button></div>
-    <button class="g-play" id="g-play">${t("play")}</button>`;
-  function bindBet() {
-    const p = $("g-panel");
-    p.querySelectorAll("[data-b]").forEach(b => b.onclick = () => {
-      const a = acc(), m = a ? a.money : 0, c = Number($("g-bet").value) || 1, k = b.dataset.b;
-      $("g-bet").value = String(Math.max(1, Math.floor(k === "min" ? 1 : k === "half" ? c / 2 : k === "x2" ? c * 2 : m)));
+  /* ---------- mise (pile ou face / slots) : argent OU pommes ---------- */
+  let B = { kind: "money", apple: null, qty: 1, bet: "1" };
+  const stakeValue = () => (B.kind === "apple" ? (B.apple ? B.qty * price(B.apple) : 0) : Math.floor(Number(B.bet)) || 0);
+  function stakeHTML() {
+    const owned = wheelApples().filter(k => own(k) > 0);
+    if (B.apple && !own(B.apple)) B.apple = null;
+    if (B.apple) B.qty = Math.max(1, Math.min(own(B.apple), Math.floor(B.qty) || 1));
+    const mode = `<div class="g-bar"><button class="g-mini ${B.kind === "money" ? "on" : ""}" data-sk="money">${t("cash")}</button><button class="g-mini ${B.kind === "apple" ? "on" : ""}" data-sk="apple">${t("apples")}</button></div>`;
+    const body = B.kind === "money"
+      ? `<div class="g-bar"><span>${t("bet")}</span><input id="g-bet" type="number" min="1" step="1" value="${B.bet}"><button class="g-mini" data-b="min">Min</button><button class="g-mini" data-b="half">½</button><button class="g-mini" data-b="x2">x2</button><button class="g-mini" data-b="max">Max</button></div>`
+      : (!owned.length ? `<div class="g-hint">${wt("noOwn")}</div>`
+        : `<div class="g-agrid" id="g-sa" style="flex:none;width:100%;max-height:118px">${owned.map(k => `<div class="g-acard ${B.apple === k ? "on" : ""}" data-k="${k}"><img src="${IMG_FRUITS[k]}"><div>${aname(k)}</div><b>x${own(k)}</b></div>`).join("")}</div>
+           <div class="g-bar"><span>${wt("qty")}</span><button class="g-mini" data-q="-1">-1</button><input id="g-sqty" type="number" min="1" value="${B.qty}" style="width:90px"><button class="g-mini" data-q="1">+1</button><button class="g-mini" data-q="max">Max</button></div>`);
+    return `${mode}${body}<div id="g-feetxt" style="font-size:14px;color:#aab2c5"></div><button class="g-play" id="g-play">${t("play")}</button>`;
+  }
+  function updateFee() { const el = $("g-feetxt"), v = stakeValue(); if (el) el.textContent = v > 0 ? `${t("fee")} : $${num(fee(v))}` : ""; }
+  function stakeInit() {
+    const c = $("g-stake"); if (!c) return; c.innerHTML = stakeHTML();
+    c.querySelectorAll("[data-sk]").forEach(b => b.onclick = () => { if (!busy) { B.kind = b.dataset.sk; stakeInit(); } });
+    const bi = $("g-bet"); if (bi) bi.oninput = () => { B.bet = bi.value; updateFee(); };
+    c.querySelectorAll("[data-b]").forEach(b => b.onclick = () => {
+      const a = acc(), m = a ? a.money : 0, cur = Number(B.bet) || 1, k = b.dataset.b;
+      B.bet = String(Math.max(1, Math.floor(k === "min" ? 1 : k === "half" ? cur / 2 : k === "x2" ? cur * 2 : m / (1 + FEE)))); bi.value = B.bet; updateFee(); // Max = la plus grosse mise qui laisse payer les frais
     });
+    c.querySelectorAll(".g-acard").forEach(el => el.onclick = () => { if (!busy) { B.apple = el.dataset.k; B.qty = 1; stakeInit(); } });
+    const qi = $("g-sqty"); if (qi) qi.oninput = () => { B.qty = Math.max(1, Math.min(own(B.apple) || 1, Math.floor(Number(qi.value)) || 1)); updateFee(); };
+    c.querySelectorAll("[data-q]").forEach(b => b.onclick = () => {
+      if (busy || !B.apple) return; const d = b.dataset.q;
+      B.qty = Math.max(1, Math.min(own(B.apple), d === "max" ? own(B.apple) : B.qty + parseInt(d))); qi.value = B.qty; updateFee();
+    });
+    $("g-play").onclick = playBet; updateFee();
   }
 
   function render() {
@@ -105,35 +128,45 @@
     if (game === "coin") {
       p.innerHTML = `<div id="g-info">${t("coinInfo")}</div><div id="g-stage"><div><div class="g-coinwrap"><div class="g-coin" id="g-coinel"><img src="${HEADS}"><img class="b" src="${TAILS}"></div></div>
         <div class="g-side"><button class="g-mini ${side === "heads" ? "on" : ""}" data-s="heads">${t("heads")}</button><button class="g-mini ${side === "tails" ? "on" : ""}" data-s="tails">${t("tails")}</button></div></div></div>
-        <div id="g-result"></div>${betBar()}`;
+        <div id="g-result"></div><div id="g-stake" class="g-stake"></div>`;
       p.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { if (!busy) { side = b.dataset.s; render(); } });
-      $("g-play").onclick = playBet; bindBet();
+      stakeInit();
     } else if (game === "slots") {
       p.innerHTML = `<div id="g-info">${t("slotsInfo")}</div><div id="g-stage"><div class="g-reels">${[0, 1, 2].map(i => `<div class="g-reel"><img id="g-r${i}" src="${IMG_FRUITS.red}"></div>`).join("")}</div></div>
-        <div class="g-pay">${Object.entries(SLOT).map(([k, m]) => `<div><img src="${IMG_FRUITS[k]}">x${m}</div>`).join("")}</div><div id="g-result"></div>${betBar()}`;
-      $("g-play").onclick = playBet; bindBet();
+        <div class="g-pay">${Object.entries(SLOT).map(([k, m]) => `<div><img src="${IMG_FRUITS[k]}">x${m}</div>`).join("")}</div><div id="g-result"></div><div id="g-stake" class="g-stake"></div>`;
+      stakeInit();
     } else renderWheel();
   }
 
   /* ---------- pile ou face / slots ---------- */
   async function playBet() {
-    if (busy) return; const a = acc(), bet = Math.floor(Number($("g-bet").value));
-    if (!a || !Number.isFinite(bet) || bet < 1) return toast(t("badbet"));
-    if (bet > a.money) return toast(t("nomoney"));
+    if (busy) return; const a = acc(); if (!a) return;
+    const v = stakeValue(), f = fee(v), choice = game === "coin" ? side : undefined; let body;
+    if (B.kind === "money") {
+      const bet = Math.floor(Number(B.bet));
+      if (!(bet >= 1)) return toast(t("badbet"));
+      if (bet + f > a.money) return toast(bet > a.money ? t("nomoney") : t("nofee"));
+      body = { game, stake: "money", bet, choice };
+    } else {
+      if (!B.apple) return toast(wt("pickGive")); if (own(B.apple) < B.qty) return toast(t("noApple"));
+      if (f > a.money) return toast(t("nofee"));
+      body = { game, stake: "apple", apple: B.apple, qty: B.qty, choice };
+    }
+    const kind = B.kind, apple = B.apple, stake = kind === "money" ? body.bet : body.qty;
     lock(true);
     try {
-      const r = await window.FC.act("/gamble", { game, bet, choice: game === "coin" ? side : undefined });
-      const mult = Number(r && r.mult) || 0;
+      const r = await window.FC.act("/gamble", body), mult = Number(r && r.mult) || 0;
       if (game === "coin") await animCoin(r, mult > 0); else await animSlots(mult);
-      showGain(bet, mult);
+      showGain(stake, mult, kind, apple);
     } catch (e) { /* act() affiche déjà l'erreur */ }
-    lock(false);
+    lock(false); stakeInit();
   }
-  function showGain(bet, mult) {
-    const gain = Math.floor(bet * mult) - bet, el = $("g-result"); if (!el) return;
-    if (gain > 0) { el.style.color = "#4ADE80"; el.textContent = `${t("win")} +$${num(gain)} (x${mult})`; }
+  function showGain(stake, mult, kind, apple) {
+    const gain = Math.floor(stake * mult) - stake, el = $("g-result"); if (!el) return;
+    const fmt = n => (kind === "money" ? "$" + num(n) : num(n) + " " + aname(apple));
+    if (gain > 0) { el.style.color = "#4ADE80"; el.textContent = `${t("win")} +${fmt(gain)} (x${mult})`; }
     else if (mult > 0) { el.style.color = "#fff"; el.textContent = `${t("back")} (x${mult})`; }
-    else { el.style.color = "#ff6b6b"; el.textContent = `${t("lose")} -$${num(bet)}`; }
+    else { el.style.color = "#ff6b6b"; el.textContent = `${t("lose")} -${fmt(stake)}`; }
   }
   function lock(v) { busy = v; const b = $("g-play"); if (b) b.disabled = v; if (!v) money(); }
   async function animCoin(r, win) {
@@ -192,7 +225,7 @@
     p.innerHTML = `<div id="g-info">${t("wheelInfo")}</div>
       <div class="g-bar"><button class="g-mini ${W.kind === "apple" ? "on" : ""}" data-kind="apple">${t("apples")}</button><button class="g-mini ${W.kind === "money" ? "on" : ""}" data-kind="money">${t("cash")}</button></div>
       <div class="g-wrow"><div class="g-wcol" id="g-givecol">${giveHTML}</div><div class="g-wmid"><div class="g-wheelwrap"><div class="g-ptr"></div><div class="g-wheel" id="g-wheelel"></div></div>
-        <div class="g-pct" id="g-pct"></div><div id="g-result"></div><button class="g-play" id="g-play">${t("spin")}</button></div><div class="g-wcol" id="g-wantcol"></div></div>`;
+        <div class="g-pct" id="g-pct"></div><div id="g-fee" style="font-size:14px;color:#aab2c5"></div><div id="g-result"></div><button class="g-play" id="g-play">${t("spin")}</button></div><div class="g-wcol" id="g-wantcol"></div></div>`;
     p.querySelectorAll("[data-kind]").forEach(b => b.onclick = () => { if (!busy) { W.kind = b.dataset.kind; W.want = null; renderWheel(); } });
     const gc = $("g-givecol");
     gc.querySelectorAll(".g-acard").forEach(c => c.onclick = () => { if (!busy) { W.give = c.dataset.k; W.qty = 1; renderWheel(); } });
@@ -202,7 +235,7 @@
     if (mi) mi.oninput = () => { W.giveAmt = mi.value; upd(); };
     gc.querySelectorAll("[data-q]").forEach(b => b.onclick = () => {
       if (busy) return; const d = b.dataset.q;
-      if (W.kind === "money") { W.giveAmt = String(Math.floor((acc() || {}).money || 0)); mi.value = W.giveAmt; return upd(); }
+      if (W.kind === "money") { W.giveAmt = String(Math.floor(((acc() || {}).money || 0) / (1 + FEE))); mi.value = W.giveAmt; return upd(); }
       if (!W.give) return; W.qty = Math.max(1, Math.min(own(W.give), d === "max" ? own(W.give) : W.qty + parseInt(d))); qi.value = W.qty; upd();
     });
     $("g-play").onclick = playWheel; bindWant(); drawWheel();
@@ -211,11 +244,12 @@
     const { pct } = wheelState(), w = $("g-wheelel"); if (!w) return;
     w.style.background = pct ? `conic-gradient(#27ae60 0deg ${pct * 3.6}deg,#c23616 ${pct * 3.6}deg 360deg)` : "conic-gradient(#c23616 0deg 360deg)";
     $("g-pct").textContent = pct ? `${pct}% ${t("chance")}` : "";
+    const g = giveVal(); $("g-fee").textContent = g > 0 ? `${t("fee")} : $${num(fee(g))}` : "";
   }
   async function playWheel() {
     if (busy) return; const { g, w, pct, a } = wheelState();
-    if (W.kind === "apple") { if (!W.give) return toast(wt("pickGive")); if (!W.want) return toast(t("pick")); if (own(W.give) < W.qty) return toast(t("noApple")); }
-    else { if (g < 1) return toast(t("badbet")); if (g > a.money) return toast(t("nomoney")); }
+    if (W.kind === "apple") { if (!W.give) return toast(wt("pickGive")); if (!W.want) return toast(t("pick")); if (own(W.give) < W.qty) return toast(t("noApple")); if (fee(g) > a.money) return toast(t("nofee")); }
+    else { if (g < 1) return toast(t("badbet")); if (g + fee(g) > a.money) return toast(g > a.money ? t("nomoney") : t("nofee")); }
     if (!pct) return toast(t("needMore"));
     lock(true); let txt = "", col = "";
     try {
