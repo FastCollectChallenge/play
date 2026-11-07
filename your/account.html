@@ -3,7 +3,22 @@
 <head>
 <base href="/">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+    (function () {
+      if (location.hostname === "mobile.fastcollectchallenge.com") return;
+      try {
+        if (new URLSearchParams(location.search).get("desktop") === "1") sessionStorage.setItem("fc_desktop", "1");
+        if (sessionStorage.getItem("fc_desktop")) return;
+      } catch (e) {}
+      var ua = navigator.userAgent || "";
+      var isPhone = (navigator.userAgentData && navigator.userAgentData.mobile === true) ||
+        /Android|iPhone|iPad|iPod|Mobile|Tablet|Silk|Windows Phone|webOS|BlackBerry|Opera Mini/i.test(ua) ||
+        (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ||
+        (window.matchMedia && matchMedia("(pointer:coarse)").matches && matchMedia("(hover:none)").matches);
+      if (isPhone) location.replace("https://mobile.fastcollectchallenge.com" + location.pathname + location.search + location.hash);
+    })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=0.75, minimum-scale=0.75, maximum-scale=0.75, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="🕹 Join Discord: https://discord.gg/52UY26TBQF">
     <link rel="icon" href="icons/Favicon.png" type="image/png">
     <title>Fast Collect Challenge</title>
@@ -1366,7 +1381,8 @@ body {
         window.addEventListener("mousemove", (e) => { player.x = e.clientX; player.y = e.clientY; });
     </script>
 <script src="i18n.js"></script>
-<script src="witch-fuse.js"></script>
+<script src="craft-machine.js"></script>
+<script src="mobile.js"></script>
 <script type="module" src="accounts-database.js"></script>
 </body>
 </html>
