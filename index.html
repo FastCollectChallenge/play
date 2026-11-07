@@ -1,8 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>   
+    
+(function () {
+  // Déjà sur la version mobile : ne rien faire (évite une boucle de redirection)
+  if (location.hostname === "mobile.fastcollectchallenge.com") return;
+
+  // Échappatoire : ajouter ?desktop=1 à l'URL pour rester sur la version PC
+  try {
+    if (new URLSearchParams(location.search).get("desktop") === "1") sessionStorage.setItem("fc_desktop", "1");
+    if (sessionStorage.getItem("fc_desktop")) return;
+  } catch (e) {}
+
+  var ua = navigator.userAgent || "";
+  var isPhone =
+    (navigator.userAgentData && navigator.userAgentData.mobile === true) ||
+    /Android.+Mobile|iPhone|iPod|Windows Phone|webOS|BlackBerry|Opera Mini/i.test(ua);
+
+  if (isPhone) {
+    location.replace("https://mobile.fastcollectchallenge.com" + location.pathname + location.search + location.hash);
+  }
+})();
+</script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="🕹 Join Discord: https://discord.gg/52UY26TBQF">
     <link rel="icon" href="icons/Favicon.png" type="image/png">
     <title>Fast Collect Challenge</title>
@@ -1365,7 +1387,7 @@ body {
         window.addEventListener("mousemove", (e) => { player.x = e.clientX; player.y = e.clientY; });
     </script>
 <script src="i18n.js"></script>
-<script src="witch-fuse.js"></script>
+<script src="craft-machine.js"></script>
 <script type="module" src="accounts-database.js"></script>
 </body>
 </html>
