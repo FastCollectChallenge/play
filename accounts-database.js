@@ -99,7 +99,9 @@ function announce(t) {
   else if (t === "moony") showAdvancedMsg("A Moony Apple spawned in your server!", "bottom", { stops: ["#BFC1C2", "#F8F8F8", "#9EA0A2", "#ECECEC"] });
   else if (NEW_APPLES[t]) newAppleMsg(t);
 }
+const codeSkip = {};
 function announceAdmin(t) { // pomme envoyée par l'admin
+  if (codeSkip[t] > 0) { codeSkip[t]--; return; }
   const fr = "<span style='color: #ff3838; font-weight: 900;'>FelixRouge</span>";
   if (t === "lava") showAdvancedMsg(fr + " spawned a Lava Apple in your server!", "bottom", { color: "#FF4D00" });
   else if (t === "galaxy") showAdvancedMsg(fr + " spawned a Galaxy Apple in your server!", "bottom", { isGalaxy: true });
@@ -787,3 +789,36 @@ onAuthStateChanged(auth, async user => {
 // interface du jeu (logos, popups sans pause, autosell...) : chargée automatiquement
 if (!window.__gameUI) { window.__gameUI = true; const g = document.createElement("script"); g.src = "game-ui.js"; document.head.appendChild(g); }
 if (!window.__gambleUI) { window.__gambleUI = true; const g2 = document.createElement("script"); g2.src = "gambling-ui.js"; document.head.appendChild(g2); }
+
+/* ---------- Codes ---------- */
+const codeBtn = document.createElement("button");
+codeBtn.id = "code-btn"; codeBtn.className = "side-btn"; codeBtn.style.background = "rgb(255, 255, 255)";
+codeBtn.innerHTML = `<img src="icons/Code Dark Mode.png" alt="Codes" style="filter:brightness(0);opacity:1" onerror="this.style.display='none';this.parentNode.classList.add('no-img')"><span class="side-btn-label" style="color:#2c1a45">Codes</span>`;
+const sbar = $("side-buttons"); sbar.appendChild(codeBtn);
+new MutationObserver(() => { if (sbar.lastElementChild !== codeBtn) sbar.appendChild(codeBtn); }).observe(sbar, { childList: true }); // toujours sous Gambling
+
+const cdOv = document.createElement("div"); cdOv.className = "rb";
+cdOv.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px)";
+cdOv.innerHTML = `<div style="width:min(360px,92vw);background:#000;border:1px solid #333;border-radius:8px;padding:18px;color:#fff;display:flex;flex-direction:column;gap:12px;box-sizing:border-box"><div style="font-size:18px;text-align:center">Enter a code</div><input id="code-input" autocomplete="off" maxlength="32" placeholder="CODE" style="height:42px;padding:0 12px;background:#000;border:1px solid #fff;border-radius:3px;color:#fff;font-size:15px;outline:none;text-transform:uppercase"><button id="code-ok" class="tr-send" style="padding:12px;font-size:15px">Redeem</button></div>`;
+document.body.appendChild(cdOv);
+cdOv.onmousedown = e => { if (e.target === cdOv) cdOv.style.display = "none"; };
+codeBtn.onclick = () => {
+  ["inventory-screen", "shop-screen", "index-screen"].forEach(i => $(i).style.display = "none");
+  cdOv.style.display = "flex"; $("code-input").value = ""; $("code-input").focus();
+};
+function redeemCode() {
+  const code = $("code-input").value.trim(); if (!code) return;
+  cdOv.style.display = "none";
+  act("/redeem", { code }).then(r => {
+    const nm = APPLE_NAMES[r.type] || r.type, q = r.qty > 1 ? r.qty + "x " : "";
+    if (r.kind === "money") toastG("You got $" + fmtNum(r.qty) + " !");
+    else if (r.kind === "inv") toastG(q + nm + " added to your inventory!");
+    else {
+      toastG(q + nm + " spawned!");
+      codeSkip[r.type] = (codeSkip[r.type] || 0) + r.qty;
+      advCall("/sync", { refresh: true }, false).catch(() => {});
+    }
+  }).catch(() => {}); // les erreurs ("Code sold out", "Invalid code"...) sont déjà affichées par act()
+}
+$("code-ok").onclick = redeemCode;
+$("code-input").onkeydown = e => { if (e.key === "Enter") redeemCode(); };

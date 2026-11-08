@@ -29,6 +29,8 @@
   const FEE = 0.05, fee = v => Math.ceil(v * FEE); // frais de 5 % de la valeur misée, payés en argent (même règle côté serveur)
   const BARRIER = "icons/barrier.png", HEADS = "icons/heads.png", TAILS = "icons/tails.png";
   const wheelApples = () => APPLE_ORDER.filter(k => APPLE_FIELDS[k] && IMG_FRUITS[k] && price(k) > 0);
+  const WHEEL_BLOCKED = new Set(["salhini", "skull", "poisoned", "frostfire", "elixir", "corrupted", "ghost", "pumpkini", "sun"]); // pomme admin + pommes witch fuse : interdites dans la roue
+  const wheelPool = () => wheelApples().filter(k => !WHEEL_BLOCKED.has(k));
   const chanceOf = (give, want) => (give > 0 && want > give ? Math.max(1, Math.min(99, Math.round(give / want * 100))) : 0); // même formule côté serveur
 
   /* ---------- styles ---------- */
@@ -150,7 +152,7 @@
     } else {
       if (!B.apple) return toast(wt("pickGive")); if (own(B.apple) < B.qty) return toast(t("noApple"));
       if (f > a.money) return toast(t("nofee"));
-      body = { game, stake: "apple", apple: B.apple, qty: B.qty, choice };
+      body = { game, stake: "apple", apple: B.apple, qty: Math.floor(Number(B.qty)), choice };
     }
     const kind = B.kind, apple = B.apple, stake = kind === "money" ? body.bet : body.qty;
     lock(true);
@@ -201,7 +203,7 @@
     const g = giveVal(), w = W.kind === "apple" ? (W.want ? price(W.want) : 0) : Math.floor(Number(W.wantAmt)) || 0;
     return { g, w, pct: chanceV(g, w), a: acc() };
   }
-  const wantList = () => { const g = giveVal(); return g > 0 ? wheelApples().filter(k => chanceV(g, price(k)) >= 1) : []; }; // seulement les pommes à 1 % ou plus
+  const wantList = () => { const g = giveVal(); return g > 0 ? wheelPool().filter(k => chanceV(g, price(k)) >= 1) : []; }; // seulement les pommes à 1 % ou plus
   function wantHTML() {
     if (W.kind === "money") { const g = giveVal(); return `<h4>${t("want")}</h4><div class="g-bar" style="margin:auto;flex-direction:column"><input data-m="want" type="number" min="1" step="1" placeholder="${wt("amount")}" value="${W.wantAmt}">${g ? `<small style="color:#aab2c5">${wt("maxWant")} : $${num(g * 200)}</small>` : ""}</div>`; }
     const list = wantList(); if (W.want && !list.includes(W.want)) W.want = null;
@@ -214,8 +216,8 @@
     const wi = c.querySelector("[data-m]"); if (wi) wi.oninput = () => { W.wantAmt = wi.value; drawWheel(); };
   }
   function renderWheel() {
-    const p = $("g-panel"), owned = wheelApples().filter(k => own(k) > 0);
-    if (W.give && !own(W.give)) W.give = null;
+    const p = $("g-panel"), owned = wheelPool().filter(k => own(k) > 0);
+    if (W.give && (!own(W.give) || WHEEL_BLOCKED.has(W.give))) W.give = null;
     if (W.give) W.qty = Math.max(1, Math.min(own(W.give), Math.floor(W.qty) || 1));
     const giveHTML = W.kind === "apple"
       ? `<h4>${t("give")}</h4>` + (!owned.length ? `<div class="g-hint">${wt("noOwn")}</div>` :
