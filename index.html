@@ -668,8 +668,21 @@ body {
             pumpkini:  { field:'pumpkiniApples',  name:'Pumpkini Appelini', price:32000000,  chance:0, color:'#ff8a1f', msg:'A Pumpkini Appelini spawned in your server!' },
             sun:       { field:'sunApples',       name:'Sun Apple',         price:170000000, chance:0, color:'#ffd23f', msg:'A Sun Apple spawned in your server!' }
         });
-        const APPLE_ORDER = ['red', 'green', 'golden', 'diamond', 'candy', 'lava', 'galaxy', 'dark', 'cheezy', 'moony', 'sand', 'amethyst', 'ice', 'salhini', 'sapphire', 'rainbow', 'bloodmoon', 'canneloni'];
-        APPLE_ORDER.push('skull', 'poisoned', 'frostfire', 'elixir', 'corrupted', 'ghost', 'pumpkini', 'sun');
+        Object.assign(NEW_APPLES, {
+            cotton:    { field:'cottonApples',    name:'Cotton Apple',    price:50000,     chance:0, color:'#f3e9ff', msg:'A Cotton Apple spawned in your server!' },
+            chocolate: { field:'chocolateApples', name:'Chocolate Apple', price:200000,    chance:0, color:'#7b3f00', msg:'A Chocolate Apple spawned in your server!' },
+            pastel:    { field:'pastelApples',    name:'Pastel Apple',    price:750000,    chance:0, color:'#ffc8dd', msg:'A Pastel Apple spawned in your server!' },
+            redstone:  { field:'redstoneApples',  name:'Redstone Apple',  price:3200000,   chance:0, color:'#e0201b', msg:'A Redstone Apple spawned in your server!' },
+            glass:     { field:'glassApples',     name:'Glass Apple',     price:56000000,  chance:0, color:'#bfefff', msg:'A Glass Apple spawned in your server!' },
+            ruby:      { field:'rubyApples',      name:'Ruby Apple',      price:200000000, chance:0, color:'#e0115f', msg:'A Ruby Apple spawned in your server!' },
+    tenth:     { field:'tenthApples',     name:'10th Update Apple', price:0,       chance:0, color:'#ffd700', msg:'A 10th Update Apple spawned in your server!' }
+        });
+        Object.assign(IMG_FRUITS, {
+            cotton: "apples/Cotton%20Apple.png", chocolate: "apples/Chocolate%20Apple.png", pastel: "apples/Pastel%20Apple.png",
+            redstone: "apples/Redstone%20Apple.png", glass: "apples/Glass%20Apple.png", ruby: "apples/Ruby%20Apple.png", tenth: "apples/10th%20update%20apple.png"
+        });
+        // Ordre officiel (celui de la page How to play) : sert à l'Index, aux Best spawns et à l'échange
+        const APPLE_ORDER = ['red', 'green', 'golden', 'diamond', 'candy', 'lava', 'galaxy', 'dark', 'cheezy', 'skull', 'moony', 'sand', 'cotton', 'poisoned', 'frostfire', 'chocolate', 'elixir', 'amethyst', 'ice', 'corrupted', 'pastel', 'sapphire', 'ghost', 'rainbow', 'redstone', 'bloodmoon', 'pumpkini', 'glass', 'canneloni', 'sun', 'ruby', 'salhini', 'tenth'];
         const APPLE_NAMES = { red: 'Red Apple', green: 'Green Apple', golden: 'Golden Apple', diamond: 'Diamond Apple', candy: 'Candy Apple', lava: 'Lava Apple', galaxy: 'Galaxy Apple', dark: 'Dark Apple', moony: 'Moony Apple', salhini: 'Salhini Appelini', bloodmoon: 'Bloodmoon Apple' };
         const APPLE_FIELDS = { red: 'redApples', green: 'greenApples', golden: 'goldenApples', diamond: 'diamondApples', candy: 'candyApples', lava: 'lavaApples', galaxy: 'galaxyApples', dark: 'darkApples', moony: 'moonyApples', salhini: 'salhiniApples', bloodmoon: 'bloodmoonApples' };
         Object.keys(NEW_APPLES).forEach(k => { APPLE_NAMES[k] = NEW_APPLES[k].name; APPLE_FIELDS[k] = NEW_APPLES[k].field; });
@@ -874,7 +887,7 @@ body {
                     if (item.count > 0) {
                         const card = document.createElement("div"); card.className = "inv-item-card";
                         const rarity = appleRarity(item.id);
-                        card.innerHTML = `<div class="inv-item-info"><img src="${item.content}" class="inv-item-icon-img" /><div class="inv-item-details"><span class="inv-item-name">${APPLE_NAMES[item.id] || NEW_APPLES[item.id]?.name || item.id}</span>${rarity ? `<span class="inv-item-rarity ${rarity.cls}">${rarity.name}</span>` : ''}<span class="inv-item-count">x${fmtNum(item.count)}</span></div></div><button class="sell-btn" onclick="event.stopPropagation(); openSellModal('${item.id}')">💱</button>`;
+                        card.innerHTML = `<div class="inv-item-info"><img src="${item.content}" class="inv-item-icon-img" /><div class="inv-item-details"><span class="inv-item-name">${APPLE_NAMES[item.id] || NEW_APPLES[item.id]?.name || item.id}</span>${rarity ? `<span class="inv-item-rarity ${rarity.cls}">${rarity.name}</span>` : ''}<span class="inv-item-count">x${fmtNum(item.count)}</span></div></div>${item.id === 'tenth' ? '' : `<button class="sell-btn" onclick="event.stopPropagation(); openSellModal('${item.id}')">💱</button>`}`;
                         grid.appendChild(card);
                     }
                 });
@@ -923,8 +936,10 @@ body {
             if (type === 'red' || type === 'green') return { name:'Common', cls:'rarity-common' };
             if (type === 'golden' || type === 'diamond') return { name:'Rare', cls:'rarity-rare' };
             if (['candy','lava','galaxy','dark'].includes(type)) return { name:'Epic', cls:'rarity-epic' };
-            if (['cheezy','sand','skull','poisoned','frostfire','moony'].includes(type)) return { name:'Godly Apple', cls:'rarity-godly' };
+            if (['cheezy','sand','skull','poisoned','frostfire','moony','cotton','chocolate'].includes(type)) return { name:'Godly Apple', cls:'rarity-godly' };
             if (['amethyst','ice','sapphire','rainbow','canneloni','elixir','corrupted','ghost','pumpkini','sun','bloodmoon'].includes(type)) return { name:'Secret', cls:'rarity-secret' };
+            if (['pastel','redstone','glass','ruby'].includes(type)) return { name:'Secret', cls:'rarity-secret' };
+            if (type === 'tenth') return { name:'Admin', cls:'rarity-admin' };
             if (type === 'salhini') return { name:'Admin', cls:'rarity-admin' };
             return null;
         }
@@ -933,7 +948,7 @@ body {
             const grid = document.getElementById("index-grid"); grid.innerHTML = "";
             const activeData = accounts[currentAccountName] || {};
             const idxPrice = t => NEW_APPLES[t] ? NEW_APPLES[t].price : ({ red: 1, green: 3, golden: 7, diamond: 15, candy: 50, lava: 200, galaxy: 500, dark: 1000, moony: 50000, bloodmoon: 6666666 })[t];
-            APPLE_ORDER.filter(type => type !== 'salhini').sort((a, b) => idxPrice(a) - idxPrice(b)).forEach(type => {
+            APPLE_ORDER.filter(type => type !== 'salhini' && (type !== 'tenth' || (activeData.discovered && activeData.discovered[type]) || activeData[APPLE_FIELDS[type]] > 0)).forEach(type => {
                 const discovered = (activeData.discovered && activeData.discovered[type]) || (activeData[APPLE_FIELDS[type]] > 0);
                 const rarity = appleRarity(type);
                 const card = document.createElement("div"); card.className = "index-item-card";
@@ -1018,6 +1033,7 @@ body {
         }
 
         function openSellModal(type) {
+            if (type === 'tenth') return; // 10th Update Apple : invendable
             activeSellType = type; const inputField = document.getElementById("sell-quantity"); inputField.value = "";
             const title = document.getElementById("sell-title");
             if (type === 'red') title.innerText = "Sell Red Apples (+1$)";
@@ -1380,10 +1396,10 @@ body {
         window.addEventListener("mousemove", (e) => { player.x = e.clientX; player.y = e.clientY; });
     </script>
 <script src="i18n.js"></script>
-<script src="witch-fuse.js"></script>
 <script src="mobile.js"></script>
 <script type="module" src="accounts-database.js"></script>
 </body>
 </html>
+<script src="craft-machine.js"></script>
 </body>
 </html>

@@ -336,7 +336,7 @@ window.confirmTransaction = function () {
   closeSellModal();
   act("/sell", { type: t, qty: n }, () => { a[f] -= n; a.money += n * priceOf(t); });
 };
-window.FC = { act, priceOf, srvNow, credit, refreshMe };
+window.FC = { act, priceOf, srvNow, credit, refreshMe, api };
 
 /* ---------- écran de connexion ---------- */
 const ov = document.createElement("div");
@@ -481,28 +481,31 @@ window.openAccountModal = () => me && openProfilePage({
 /* ---------- Trade : UI ---------- */
 const trBtn = document.createElement("button");
 trBtn.id = "trade-btn"; trBtn.className = "side-btn"; trBtn.style.background = "rgb(255, 255, 255)";
-trBtn.innerHTML = `<img src="https://cdn-icons-png.flaticon.com/512/3439/3439283.png" alt="Trade" onerror="this.style.display='none';this.parentNode.classList.add('no-img')"><span class="side-btn-label">Trade</span><span id="tr-badge" style="display:none;position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;line-height:20px;border-radius:10px;background:#e84118;color:#fff;font-size:9px;text-align:center"></span>`;
+trBtn.innerHTML = `<img src="icons/Trading Dark Mode.png" alt="Trade" onerror="this.style.display='none';this.parentNode.classList.add('no-img')"><span class="side-btn-label">Trade</span><span id="tr-badge" style="display:none;position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;line-height:20px;border-radius:10px;background:#f43f5e;color:#fff;font-size:9px;text-align:center"></span>`;
 $("side-buttons").appendChild(trBtn);
 const trStyle = document.createElement("style");
 trStyle.textContent = `@keyframes trpop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
-.tr-hint{color:#aaa;text-align:center;padding:36px 0;font-size:14px}
-.tr-row{display:flex;align-items:center;gap:12px;padding:6px 0;margin-bottom:6px}
-.tr-av{width:36px;height:36px;border-radius:4px;object-fit:cover;background:#222;flex:none}
-.tr-mid{flex:1;min-width:0;font-size:14px}.tr-name{color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tr-send{border:0;border-radius:2px;padding:9px 14px;background:#27ae60;color:#fff;cursor:pointer;font-size:14px;flex:none}
-.tr-send:disabled{background:#7f8c8d;cursor:not-allowed}
+.tr-hint{color:#8b95a8;text-align:center;padding:36px 0;font-size:14px}
+.tr-row{display:flex;align-items:center;gap:12px;padding:10px 12px;margin-bottom:8px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10)}
+.tr-av{width:38px;height:38px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,.08);flex:none}
+.tr-mid{flex:1;min-width:0;font-size:14px;font-weight:600}.tr-name{color:#e8ecf4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-send{border:0;border-radius:10px;padding:9px 16px;background:#7c5cff;color:#fff;cursor:pointer;font-size:13px;font-weight:600;flex:none;transition:background .2s,box-shadow .2s}
+.tr-send:hover:not(:disabled){background:#6d4cf0;box-shadow:0 6px 20px rgba(124,92,255,.4)}
+.tr-send:disabled{background:rgba(255,255,255,.08);color:#8b95a8;cursor:not-allowed}
+#tr-user:focus,#code-input:focus{border-color:#7c5cff!important;box-shadow:0 0 0 3px rgba(124,92,255,.25)}
 #tr-toasts{position:fixed;right:20px;bottom:140px;z-index:1500;display:flex;flex-direction:column;gap:10px;pointer-events:none}
-.tr-toast{pointer-events:auto;width:300px;box-sizing:border-box;background:rgba(20,20,25,.92);border:2px solid #487eb0;border-radius:14px;padding:12px;color:#fff;font-size:14px;animation:trpop .22s ease-out}
-.tr-btns{display:flex;gap:8px;margin-top:10px}
-.tr-btns button{flex:1;background:transparent;color:#fff;border-radius:10px;padding:8px 0;font-size:13px;cursor:pointer}
-.tr-acc{border:2px solid #2ecc71}.tr-dec{border:2px solid #e74c3c}`;
+.tr-toast{pointer-events:auto;width:300px;box-sizing:border-box;background:rgba(12,16,26,.85);border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:14px;color:#e8ecf4;font-size:14px;font-weight:600;backdrop-filter:blur(14px);box-shadow:0 12px 32px rgba(0,0,0,.45);animation:trpop .22s ease-out}
+.tr-btns{display:flex;gap:8px;margin-top:12px}
+.tr-btns button{flex:1;background:rgba(255,255,255,.06);color:#e8ecf4;border-radius:10px;padding:8px 0;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s}
+.tr-acc{border:1px solid rgba(52,211,153,.6)}.tr-acc:hover{background:rgba(52,211,153,.22)!important}
+.tr-dec{border:1px solid rgba(244,63,94,.6)}.tr-dec:hover{background:rgba(244,63,94,.22)!important}`;
 document.head.appendChild(trStyle);
 const trToasts = document.createElement("div"); trToasts.id = "tr-toasts"; document.body.appendChild(trToasts);
 
 const tr = document.createElement("div"); tr.id = "trade-screen"; tr.className = "rb";
-tr.style.cssText = "position:fixed;inset:0;margin:auto;width:400px;max-width:92vw;height:360px;max-height:80vh;background:#000;z-index:1000;border-radius:8px;border:1px solid #333;display:none;flex-direction:column;padding:14px;box-sizing:border-box;color:#fff";
+tr.style.cssText = "position:fixed;inset:0;margin:auto;width:400px;max-width:92vw;height:360px;max-height:80vh;background:rgba(10,13,20,.80);z-index:1000;border-radius:24px;border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(24px) saturate(140%);box-shadow:0 30px 80px rgba(0,0,0,.6);display:none;flex-direction:column;padding:20px;box-sizing:border-box;color:#e8ecf4;animation:trpop .22s ease-out";
 tr.innerHTML = `<button id="tr-close" style="display:none"></button>
-<div style="position:relative;margin-bottom:14px"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none">🔍</span><input id="tr-user" autocomplete="off" placeholder="Search for a user" style="width:100%;box-sizing:border-box;height:42px;padding:0 12px 0 40px;background:#000;border:1px solid #fff;border-radius:3px;color:#fff;font-size:15px;outline:none"></div>
+<div style="position:relative;margin-bottom:14px"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none">🔍</span><input id="tr-user" autocomplete="off" placeholder="Search for a user" style="width:100%;box-sizing:border-box;height:44px;padding:0 14px 0 42px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:12px;color:#e8ecf4;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s"></div>
 <div id="tr-results" style="flex:1;overflow-y:auto"></div>`;
 document.body.appendChild(tr);
 
@@ -534,7 +537,7 @@ function playerRow(u) {
   const img = new Image(); img.className = "tr-av"; img.onerror = () => { img.onerror = null; img.src = AV0; }; img.src = u.photo || AV0;
   const mid = document.createElement("div"); mid.className = "tr-mid";
   const nm = document.createElement("div"); nm.className = "tr-name"; nm.textContent = "@" + u.username;
-  const st = document.createElement("div"); st.textContent = on ? "Online" : "Offline"; st.style.color = on ? "#2ecc71" : "#e74c3c";
+  const st = document.createElement("div"); st.textContent = on ? "Online" : "Offline"; st.style.color = on ? "#34d399" : "#f43f5e"; st.style.fontSize = "12px";
   mid.append(nm, st);
   const b = document.createElement("button"); b.className = "tr-send"; b.textContent = "Send Trade"; b.disabled = !on;
   b.onclick = () => sendRequest(u.username, b);
@@ -605,26 +608,27 @@ async function respond(t, accept) {
 
 /* ---------- Trade : fenêtre d'échange ---------- */
 const twStyle = document.createElement("style");
-twStyle.textContent = `.tw-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;align-content:start}
-.tw-card{background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.15);border-radius:16px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:112px}
-.tw-card.click{cursor:pointer}.tw-card.click:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.4)}
-.tw-card.on{border-color:#4ADE80;background:rgba(74,222,128,.2)}
-.tw-card .nm{font-size:12px;text-align:center}.tw-card img{width:44px;height:44px;object-fit:contain}
-.tw-card .q{align-self:flex-end;font-size:14px;margin-top:auto}
-.tw-hint{grid-column:1/-1;color:#9aa3ad;text-align:center;padding:30px 0;font-size:14px}
+twStyle.textContent = `.tw-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;align-content:start;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent}
+.tw-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:18px;padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:112px;transition:background .2s,border-color .2s,transform .2s}
+.tw-card.click{cursor:pointer}.tw-card.click:hover{background:rgba(255,255,255,.10);border-color:rgba(124,92,255,.5);transform:translateY(-2px)}
+.tw-card.on{border-color:rgba(52,211,153,.6);background:rgba(52,211,153,.12)}
+.tw-card .nm{font-size:12px;font-weight:600;text-align:center}.tw-card img{width:44px;height:44px;object-fit:contain}
+.tw-card .q{align-self:flex-end;font-size:13px;color:#8b95a8;margin-top:auto}
+.tw-hint{grid-column:1/-1;color:#8b95a8;text-align:center;padding:30px 0;font-size:14px}
+.tw-col-title{font-size:14px;font-weight:700;margin-bottom:12px;text-align:center;color:#a5b4fc}
 #trading-screen{animation:trpop .22s ease-out}`;
 document.head.appendChild(twStyle);
 const tw = document.createElement("div"); tw.id = "trading-screen"; tw.className = "rb";
-tw.style.cssText = "position:fixed;inset:0;margin:auto;width:min(820px,94vw);height:min(540px,86vh);background:rgba(0,0,0,.6);z-index:1000;border-radius:25px;border:3px solid rgba(255,255,255,.2);backdrop-filter:blur(8px);display:none;flex-direction:column;padding:22px;box-sizing:border-box;color:#fff";
-tw.innerHTML = `<div class="screen-header" style="margin-bottom:14px;padding-bottom:12px"><h2 class="inv-title-text" id="tw-title" style="color:#fff;font-size:14px"></h2><button class="close-screen-btn" id="trading-close">Close ✖</button></div>
+tw.style.cssText = "position:fixed;inset:0;margin:auto;width:min(820px,94vw);height:min(540px,86vh);background:rgba(10,13,20,.80);z-index:1000;border-radius:24px;border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(24px) saturate(140%);box-shadow:0 30px 80px rgba(0,0,0,.6);display:none;flex-direction:column;padding:26px;box-sizing:border-box;color:#e8ecf4";
+tw.innerHTML = `<div class="screen-header" style="margin-bottom:14px;padding-bottom:12px"><h2 class="inv-title-text" id="tw-title"></h2><button class="close-screen-btn" id="trading-close">Close ✖</button></div>
 <div style="flex:1;display:flex;min-height:0">
-<div style="flex:1;display:flex;flex-direction:column;min-width:0;padding-right:14px"><div style="font-size:16px;margin-bottom:10px;text-align:center">Your offer</div><div id="tw-mine" class="tw-grid"></div></div>
-<div style="width:2px;background:rgba(255,255,255,.2)"></div>
-<div style="flex:1;display:flex;flex-direction:column;min-width:0;padding-left:14px"><div id="tw-their-title" style="font-size:16px;margin-bottom:10px;text-align:center"></div><div id="tw-theirs" class="tw-grid"></div></div></div>`;
+<div style="flex:1;display:flex;flex-direction:column;min-width:0;padding-right:14px"><div class="tw-col-title">Your offer</div><div id="tw-mine" class="tw-grid"></div></div>
+<div style="width:1px;background:rgba(255,255,255,.10)"></div>
+<div style="flex:1;display:flex;flex-direction:column;min-width:0;padding-left:14px"><div id="tw-their-title" class="tw-col-title"></div><div id="tw-theirs" class="tw-grid"></div></div></div>`;
 document.body.appendChild(tw);
 const twFoot = document.createElement("div");
 twFoot.style.cssText = "display:flex;align-items:center;justify-content:center;gap:12px;margin-top:14px";
-twFoot.innerHTML = `<div id="tw-state" style="font-size:14px;color:#ddd;text-align:center"></div><button id="tw-main" class="tr-send" style="padding:12px 22px;font-size:15px"></button><button id="tw-cancel" class="tr-send" style="padding:12px 22px;font-size:15px;background:#c23616;display:none">Cancel</button>`;
+twFoot.innerHTML = `<div id="tw-state" style="font-size:13px;color:#8b95a8;text-align:center"></div><button id="tw-main" class="tr-send" style="padding:12px 26px;font-size:14px"></button><button id="tw-cancel" class="tr-send" style="padding:12px 26px;font-size:14px;background:rgba(244,63,94,.85);display:none">Cancel</button>`;
 tw.appendChild(twFoot);
 
 const am2 = document.createElement("div"); am2.id = "add-modal"; am2.className = "rb";
@@ -653,7 +657,7 @@ function renderTrading() {
   if (sig === sigLast) return; sigLast = sig;
   const mine = $("tw-mine"), theirs = $("tw-theirs"); mine.innerHTML = ""; theirs.innerHTML = "";
   const hint = m => `<div class="tw-hint">${m}</div>`;
-  APPLE_ORDER.forEach(t => { if (owned(t) > 0 || (cur.mine[t] || 0) > 0) mine.appendChild(twCard(t, cur.mine[t] || 0, () => openAdd(t))); });
+  APPLE_ORDER.forEach(t => { if (t === "tenth") return; /* 10th Update Apple : intradable */ if (owned(t) > 0 || (cur.mine[t] || 0) > 0) mine.appendChild(twCard(t, cur.mine[t] || 0, () => openAdd(t))); });
   if (!mine.children.length) mine.innerHTML = hint("You have no apples");
   APPLE_ORDER.forEach(t => { if ((cur.theirs[t] || 0) > 0) theirs.appendChild(twCard(t, cur.theirs[t])); });
   if (!theirs.children.length) theirs.innerHTML = hint("Nothing yet");
@@ -693,11 +697,11 @@ function renderFooter() {
   if (!cur) return;
   const on = cur.other, rMe = cur.readyMe, rOt = cur.readyOther, cMe = cur.confirmMe, cOt = cur.confirmOther;
   const st = $("tw-state"), main = $("tw-main"), cn = $("tw-cancel");
-  cn.style.display = "none"; main.style.display = ""; main.style.background = "#27ae60";
+  cn.style.display = "none"; main.style.display = ""; main.style.background = "#7c5cff";
   if (cMe && cOt) { main.style.display = "none"; cn.style.display = ""; }
-  else if (cMe) { st.textContent = `Waiting for @${on} to confirm...`; main.textContent = "Cancel"; main.style.background = "#c23616"; main.dataset.a = "unconfirm"; }
+  else if (cMe) { st.textContent = `Waiting for @${on} to confirm...`; main.textContent = "Cancel"; main.style.background = "rgba(244,63,94,.85)"; main.dataset.a = "unconfirm"; }
   else if (rMe && rOt) { st.textContent = "Both ready! Press Confirm"; main.textContent = "Confirm"; main.dataset.a = "confirm"; }
-  else if (rMe) { st.textContent = `Waiting for @${on} to be ready...`; main.textContent = "Not ready"; main.style.background = "#7f8c8d"; main.dataset.a = "unready"; }
+  else if (rMe) { st.textContent = `Waiting for @${on} to be ready...`; main.textContent = "Not ready"; main.style.background = "rgba(255,255,255,.12)"; main.dataset.a = "unready"; }
   else { st.textContent = "Press Ready when your offer is final"; main.textContent = "Ready"; main.dataset.a = "ready"; }
 }
 $("tw-main").onclick = () => {
@@ -791,21 +795,33 @@ if (!window.__gameUI) { window.__gameUI = true; const g = document.createElement
 if (!window.__gambleUI) { window.__gambleUI = true; const g2 = document.createElement("script"); g2.src = "gambling-ui.js"; document.head.appendChild(g2); }
 
 /* ---------- Codes ---------- */
-const codeBtn = document.createElement("button");
-codeBtn.id = "code-btn"; codeBtn.className = "side-btn"; codeBtn.style.background = "rgb(255, 255, 255)";
-codeBtn.innerHTML = `<img src="icons/Code Dark Mode.png" alt="Codes" style="filter:brightness(0);opacity:1" onerror="this.style.display='none';this.parentNode.classList.add('no-img')"><span class="side-btn-label" style="color:#2c1a45">Codes</span>`;
-const sbar = $("side-buttons"); sbar.appendChild(codeBtn);
-new MutationObserver(() => { if (sbar.lastElementChild !== codeBtn) sbar.appendChild(codeBtn); }).observe(sbar, { childList: true }); // toujours sous Gambling
+const codeCss = document.createElement("style"); // même style que le bouton Gamble, juste en dessous
+codeCss.textContent = `#code-btn{position:absolute!important;top:168px;left:84px;background:rgb(255,255,255)}
+#code-btn .side-btn-label{color:#677f85;font-size:10px!important}
+#code-btn img{filter:url(#fc-tint)!important;opacity:1}
+#code-box{width:min(380px,92vw);background:rgba(17,22,35,.94);border:1px solid rgba(255,255,255,.10);border-radius:20px;padding:26px;color:#e8ecf4;display:flex;flex-direction:column;gap:16px;box-sizing:border-box;box-shadow:0 30px 80px rgba(0,0,0,.6);animation:trpop .22s ease-out}
+#code-title{font-size:22px;font-weight:800;letter-spacing:-.03em;text-align:center;background:linear-gradient(90deg,#fff,#a5b4fc 50%,#67e8f9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+#code-input{height:46px;padding:0 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:12px;color:#e8ecf4;font-size:16px;font-weight:600;text-align:center;letter-spacing:.12em;outline:none;text-transform:uppercase;transition:border-color .2s,box-shadow .2s}
+#code-input::placeholder{color:#8b95a8;letter-spacing:.12em}
+#code-ok{padding:13px;font-size:15px;font-weight:700;border-radius:12px;background:linear-gradient(135deg,#7c5cff,#22d3ee);box-shadow:0 8px 24px rgba(124,92,255,.35)}
+#code-ok:hover:not(:disabled){background:linear-gradient(135deg,#6d4cf0,#1cbfd9)}`;
+document.head.appendChild(codeCss);
+const sbar = $("side-buttons");
+const codeBtn = document.createElement("button"); codeBtn.id = "code-btn"; codeBtn.className = "side-btn";
+codeBtn.innerHTML = '<img src="icons/Code Dark Mode.png" alt="Codes" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'no-img\')"><span class="side-btn-label">Codes</span>';
+sbar.appendChild(codeBtn);
 
 const cdOv = document.createElement("div"); cdOv.className = "rb";
-cdOv.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px)";
-cdOv.innerHTML = `<div style="width:min(360px,92vw);background:#000;border:1px solid #333;border-radius:8px;padding:18px;color:#fff;display:flex;flex-direction:column;gap:12px;box-sizing:border-box"><div style="font-size:18px;text-align:center">Enter a code</div><input id="code-input" autocomplete="off" maxlength="32" placeholder="CODE" style="height:42px;padding:0 12px;background:#000;border:1px solid #fff;border-radius:3px;color:#fff;font-size:15px;outline:none;text-transform:uppercase"><button id="code-ok" class="tr-send" style="padding:12px;font-size:15px">Redeem</button></div>`;
+cdOv.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px)";
+cdOv.innerHTML = `<div id="code-box"><div id="code-title">Enter a code</div><input id="code-input" autocomplete="off" maxlength="32" placeholder="CODE"><button id="code-ok" class="tr-send">Redeem</button></div>`;
 document.body.appendChild(cdOv);
 cdOv.onmousedown = e => { if (e.target === cdOv) cdOv.style.display = "none"; };
 codeBtn.onclick = () => {
-  ["inventory-screen", "shop-screen", "index-screen"].forEach(i => $(i).style.display = "none");
+  ["inventory-screen", "shop-screen", "index-screen", "trade-screen"].forEach(i => { const e = $(i); if (e) e.style.display = "none"; });
+  if (window.toggleGamble) window.toggleGamble(false);
   cdOv.style.display = "flex"; $("code-input").value = ""; $("code-input").focus();
 };
+new MutationObserver(() => { if (sbar.style.display === "none") cdOv.style.display = "none"; }).observe(sbar, { attributes: true, attributeFilter: ["style"] });
 function redeemCode() {
   const code = $("code-input").value.trim(); if (!code) return;
   cdOv.style.display = "none";
